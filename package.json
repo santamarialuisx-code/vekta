@@ -13,7 +13,8 @@
     "bench:cut": "node bench/cut.mjs",
     "bench:quantize": "node bench/quantize.mjs",
     "bench:pipeline": "node bench/pipeline.mjs",
-    "bench:sweep2": "node bench/pipeline-sweep.mjs"
+    "bench:sweep2": "node bench/pipeline-sweep.mjs",
+    "bench:geometry": "node bench/geometry-sweep.mjs"
   },
   "dependencies": {
     "@visioncortex/vtracer": "1.0.0-alpha.4",

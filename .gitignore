@@ -9,6 +9,9 @@ bench/out/pipeline/
 bench/out/pipeline-report.json
 bench/out/pipeline-sweep*/
 bench/out/pipeline-sweep*.json
+bench/out/geometry-sweep/
+bench/out/geometry-sweep*.json
+bench/out/*.html
 bench/out/pipeline-ssim.json
 bench/out/metrics.json
 bench/out/sweep.json
