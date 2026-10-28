@@ -13,6 +13,7 @@ npm run bench:merge    # añade el barrido a metrics.json
 npm run bench:serve    # servidor en http://127.0.0.1:8787/
 npm run bench:cut      # informe de doble corte y SVG cortable
 npm run bench:quantize # cuantización perceptiva en OKLab (antes de trazar)
+npm run bench:pipeline # cuantizar → trazar, contra el trazado directo
 npm test               # pruebas de geometría de corte
 ```
 
@@ -49,6 +50,7 @@ bench/
   lib/quantize.mjs     cuantización ponderada por área
   lib/image-io.mjs     decodificar JPG/PNG a RGBA y escribir PNG
   quantize.mjs         CLI: paleta de N colores + informe de ΔE
+  pipeline.mjs         CLI: cuantizar → trazar y comparar con el trazado directo
   cut.mjs              CLI: informe + SVG cortable (`npm run bench:cut`)
   test/                pruebas de la geometría de corte (`node --test`)
   run.mjs  sweep.mjs  merge-metrics.mjs  serve.mjs
@@ -92,6 +94,15 @@ nubes (65 436 px casi blancos) quedan **98,5 % intactas**; con 8 colores se las 
 ```
 
 El informe queda en `out/quantize-report.json` y los PNG en `out/quantized/`.
+
+## Pipeline
+
+`npm run bench:pipeline` cuantiza y traza en la misma corrida, comparando contra el trazado
+directo con las mismas opciones. Sobre las 4 imágenes: **−8 % a −37 % de nodos** con SSIM igual o
+mejor, y las nubes del Gum Tree vuelven. La paleta se le pasa explícita a vtracer: si se le deja
+agrupar de nuevo, deriva los colores y fragmenta el SVG.
+
+Ver [`../docs/experimento-03-cuantizacion.md`](../docs/experimento-03-cuantizacion.md).
 
 ## Salida cortable
 
