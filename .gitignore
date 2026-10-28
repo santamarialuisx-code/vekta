@@ -31,3 +31,7 @@ bench/out/*.html
 .DS_Store
 *.log
 bench/out/geometry-sweep/
+bench/out/color-subpixel*/
+bench/out/color-subpixel*.json
+bench/out/color-fidelity*/
+bench/out/color-fidelity*.json

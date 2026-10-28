@@ -68,9 +68,34 @@ test("auto-trace decide por imagen y el line art sale con un solo relleno", () =
   // El preset se traza a 3× y vuelve al marco del PNG; el color no paga ese muestreo.
   assert.equal(scan.subpixelScale, 3);
   assert.equal(color.subpixelScale, 1);
+  // El modo de entrega viaja en el informe: binario para line art, curvas para color.
+  assert.equal(scan.mode, "binario");
+  assert.equal(color.mode, "curvas");
   assert.ok(fs.existsSync(path.join(output, scan.svg.split("/").pop())));
 
   assert.equal(color.decision, "color");
   assert.ok(color.fills >= 2, `la ilustración conserva sus rellenos, no ${color.fills}`);
   assert.ok(color.paletteSize >= 2);
+
+  // `--fidelity` cambia el modo del color (experimento 14) y deja el line art como estaba.
+  const fidelityJson = path.join(root, "fidelity.json");
+  execFileSync(
+    process.execPath,
+    [cli, "--inputs", input, "--out", path.join(root, "out-fidelity"), "--json", fidelityJson, "--fidelity"],
+    { stdio: "pipe" },
+  );
+  const fidelity = JSON.parse(fs.readFileSync(fidelityJson, "utf8"));
+  const fidelityScan = fidelity.find((entry) => entry.imgSlug === "scan");
+  const fidelityColor = fidelity.find((entry) => entry.imgSlug === "color");
+
+  assert.equal(fidelityColor.mode, "fidelidad");
+  assert.equal(fidelityColor.fills, color.fills, "el modo no cambia la paleta, solo el trazado");
+  assert.equal(fidelityColor.paletteSize, color.paletteSize);
+  assert.ok(fidelityColor.nodes > 0);
+  // El SVG entregado tiene que ser otro: si el modo no llegara al motor, sería idéntico byte a byte.
+  const curvesSvg = fs.readFileSync(path.join(output, color.svg.split("/").pop()), "utf8");
+  const fidelitySvg = fs.readFileSync(path.join(root, "out-fidelity", fidelityColor.svg.split("/").pop()), "utf8");
+  assert.notEqual(fidelitySvg, curvesSvg, "el modo píxel no puede emitir el mismo SVG que las curvas");
+  assert.equal(fidelityScan.mode, "binario");
+  assert.equal(fidelityScan.subpixelScale, 3);
 });
