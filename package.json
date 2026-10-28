@@ -8,9 +8,11 @@
     "bench": "node bench/run.mjs",
     "bench:sweep": "node bench/sweep.mjs",
     "bench:merge": "node bench/merge-metrics.mjs",
-    "bench:serve": "node bench/serve.mjs"
+    "bench:serve": "node bench/serve.mjs",
+    "test": "node --test bench/test/*.test.mjs"
   },
   "dependencies": {
-    "@visioncortex/vtracer": "1.0.0-alpha.4"
+    "@visioncortex/vtracer": "1.0.0-alpha.4",
+    "clipper-lib": "^6.4.2"
   }
 }
