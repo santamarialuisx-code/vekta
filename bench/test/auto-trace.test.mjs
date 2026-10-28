@@ -68,9 +68,10 @@ test("auto-trace decide por imagen y el line art sale con un solo relleno", () =
   // El preset se traza a 3× y vuelve al marco del PNG; el color no paga ese muestreo.
   assert.equal(scan.subpixelScale, 3);
   assert.equal(color.subpixelScale, 1);
-  // El modo de entrega viaja en el informe: binario para line art, curvas para color.
+  // El modo de entrega viaja en el informe: binario para line art y, por defecto, refit para color
+  // (píxel + curvas) desde el juicio a escala del experimento 15.
   assert.equal(scan.mode, "binario");
-  assert.equal(color.mode, "curvas");
+  assert.equal(color.mode, "refit");
   assert.ok(fs.existsSync(path.join(output, scan.svg.split("/").pop())));
 
   assert.equal(color.decision, "color");
@@ -116,5 +117,21 @@ test("auto-trace decide por imagen y el line art sale con un solo relleno", () =
     (refitSvg.match(/<path/g) ?? []).length,
     (fs.readFileSync(path.join(root, "out-fidelity", fidelityColor.svg.split("/").pop()), "utf8").match(/<path/g) ?? []).length,
     "el reajuste conserva una forma por región",
+  );
+
+  // `--curvas` es el perfil de corte: el color vuelve al trazado spline.
+  const curvasJson = path.join(root, "curvas.json");
+  execFileSync(
+    process.execPath,
+    [cli, "--inputs", input, "--out", path.join(root, "out-curvas"), "--json", curvasJson, "--curvas"],
+    { stdio: "pipe" },
+  );
+  const curvas = JSON.parse(fs.readFileSync(curvasJson, "utf8"));
+  const curvasColor = curvas.find((entry) => entry.imgSlug === "color");
+  assert.equal(curvasColor.mode, "curvas");
+  assert.notEqual(
+    fs.readFileSync(path.join(root, "out-curvas", curvasColor.svg.split("/").pop()), "utf8"),
+    refitSvg,
+    "el perfil de corte no puede emitir el SVG del reajuste",
   );
 });

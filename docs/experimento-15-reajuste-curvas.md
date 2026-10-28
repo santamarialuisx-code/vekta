@@ -146,5 +146,6 @@ raster, no como modo de entrega.
    hace Vector Magic con su modo foto («as many colors as the algorithm deems necessary»).
 2. **Encaje de esquinas al 50 % de cobertura** del antialiasing: hoy la esquina se conserva donde la
    ve el modo píxel; el centro de la rampa puede estar medio píxel más allá.
-3. **Decidir el modo por defecto del producto**: con el juicio a escala, `refit` es el candidato para
-   la entrega de color; el corte sigue pidiendo `curvas`.
+3. **Decidido**: `refit` es el modo por defecto de la entrega de color (`auto-trace` y la demo lo
+   eligen sin preguntar); `curvas` queda como perfil de corte (`--curvas`). El juicio a escala fue lo
+   que zanjó la duda: es el único modo que aguanta el zoom.

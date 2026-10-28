@@ -68,8 +68,8 @@ Dicho aquí para que nadie cite como resultado lo que es una línea de trabajo:
 - **Foto (13)**: una sola foto sostiene la conclusión de la categoría más cara de cerrar.
 - **Alfa (11)**: el fixture es sintético; falta un PNG real con sombras y bordes suaves.
 - **Fidelidad de color (14, 15)**: la foto sigue costando 153 641 nodos en modo refit (367 032 en
-  píxel): falta el presupuesto tonal adaptativo. Y queda decidir si `refit` pasa a ser el modo por
-  defecto de la entrega de color (el juicio a escala lo recomienda; el corte sigue pidiendo `curvas`).
+  píxel): falta el presupuesto tonal adaptativo. `refit` ya es el modo por defecto de la entrega de
+  color; `curvas` queda para cortar.
 
 ## Errata
 

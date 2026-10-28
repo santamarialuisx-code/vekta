@@ -58,9 +58,10 @@ for (const input of inputs) {
   const simplify = options.simplify === null ? preset.simplify : options.simplify;
   // La escala de muestreo es del preset: el color traza a 1× y el line art, a la del experimento 12.
   const subpixelScale = preset.scale ?? 1;
-  // `--fidelity` y `--refit` cambian el modo de entrega del color (experimentos 14 y 15); el line
-  // art no los mira.
-  const colorMode = options.refit ? "refit" : options.fidelity ? "fidelidad" : "curvas";
+  // Modo de entrega del color: `refit` (píxel + curvas) es el defecto desde el juicio a escala del
+  // experimento 15; `--curvas` es el perfil de corte (menos nodos) y `--fidelity` la referencia de
+  // medición. El line art no mira estas banderas.
+  const colorMode = options.curvas ? "curvas" : options.fidelity ? "fidelidad" : "refit";
 
   let svg;
   let paletteSize = 0;
@@ -75,9 +76,7 @@ for (const input of inputs) {
       // Paleta y `simplify` salen de la categoría; `--colors` y `--simplify` los sobrescriben.
       // En foto el modo fidelidad necesita más ranuras: el detalle tonal es el tema de la imagen.
       const presetColors =
-        options.fidelity || options.refit
-          ? (FIDELITY_COLORS[category] ?? preset.colors)
-          : preset.colors;
+        colorMode !== "curvas" ? (FIDELITY_COLORS[category] ?? preset.colors) : preset.colors;
       const maxColors = options.colors === null ? presetColors : options.colors;
       const palette = quantize(image.rgba, image.width, image.height, { maxColors });
       const rendered = renderQuantized(image.rgba, image.width, image.height, palette);
@@ -167,6 +166,7 @@ function parseArgs(args) {
     json: path.join("bench", "out", "auto-report.json"),
     only: null,
     inputs: null,
+    curvas: false,
     fidelity: false,
     refit: false,
   };
@@ -196,6 +196,9 @@ function parseArgs(args) {
         break;
       case "--refit":
         parsed.refit = true;
+        break;
+      case "--curvas":
+        parsed.curvas = true;
         break;
       case "--help":
         console.log(

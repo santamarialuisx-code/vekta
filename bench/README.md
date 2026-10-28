@@ -334,8 +334,8 @@ suavizado. La vara es doble: SSIM y nodos.
 
 El ajuste vive en `lib/curve-fit.mjs` (anillos → curvas, puro) y `lib/color-refit.mjs`
 (`refitSvg`, que reescribe los `d` de un SVG del modo píxel sin tocar rellenos ni orden). Se entrega
-con tolerancia 0,25 y esquina 60°; `--configs rdp:fit:angle` barre la frontera. `auto-trace.mjs
---refit` y la demo del navegador usan el modo.
+con tolerancia 0,25 y esquina 60°; `--configs rdp:fit:angle` barre la frontera. **`auto-trace` entrega `refit` por defecto** en color
+(la demo también); `--curvas` vuelve al perfil de corte y `--fidelity` deja el píxel puro para medir.
 
 A 3× es el único de los tres modos que aguanta el zoom: `curvas` engorda los trazos finos y tiembla
 en las rectas largas, `fidelidad` muestra el escalón del píxel, y `refit` conserva el detalle con
