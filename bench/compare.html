@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <title>Comparación lado a lado</title>
+    <style>
+      :root { color-scheme: dark; }
+      body {
+        margin: 0; padding: 16px; background: #14161a; color: #e6e6e6;
+        font: 13px/1.4 ui-monospace, "Cascadia Mono", monospace;
+      }
+      .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+      .col { display: flex; flex-direction: column; gap: 8px; }
+      .cap { font-weight: 700; letter-spacing: .02em; color: #9fd0ff; }
+      .cap small { color: #8b95a3; font-weight: 400; }
+      canvas { display: block; width: 100%; height: auto; background: #000; border-radius: 4px; }
+      .detail-cap { color: #8b95a3; font-size: 12px; }
+    </style>
+  </head>
+  <body>
+    <div class="grid">
+      <div class="col"><div class="cap" id="capA"></div><canvas id="cA"></canvas></div>
+      <div class="col"><div class="cap" id="capB"></div><canvas id="cB"></canvas></div>
+    </div>
+    <div class="grid" style="margin-top: 10px">
+      <div class="col"><div class="detail-cap" id="dA"></div><canvas id="dA_c"></canvas></div>
+      <div class="col"><div class="detail-cap" id="dB"></div><canvas id="dB_c"></canvas></div>
+    </div>
+    <script type="module">
+      const q = new URLSearchParams(location.search);
+      const A = q.get("a"), B = q.get("b");
+      const fx = Number(q.get("fx") ?? 0.5);
+      const fy = Number(q.get("fy") ?? 0.4);
+      const frac = Number(q.get("frac") ?? 0.22);
+      const FULL_W = 740;
+
+      const src = (v) => (v === "vm" ? "out/vectormagic-gumtree.png" : v === "orig" ? "inputs/Gum Tree Vector.jpg" : "out/" + v);
+
+      const load = (s) =>
+        new Promise((res, rej) => {
+          const i = new Image();
+          i.onload = () => res(i);
+          i.onerror = () => rej(new Error("failed " + s));
+          i.src = s;
+        });
+
+      async function render(img, canvas, fullW) {
+        const w = img.naturalWidth, h = img.naturalHeight;
+        canvas.width = fullW;
+        canvas.height = Math.round((fullW * h) / w);
+        const ctx = canvas.getContext("2d");
+        ctx.fillStyle = "#fff";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.imageSmoothingQuality = "high";
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        return { w, h };
+      }
+
+      async function renderDetail(img, canvas, fullW) {
+        const w = img.naturalWidth, h = img.naturalHeight;
+        const cw = w * frac, ch = h * frac;
+        const cx = Math.min(Math.max(w * fx, cw / 2), w - cw / 2);
+        const cy = Math.min(Math.max(h * fy, ch / 2), h - ch / 2);
+        canvas.width = fullW;
+        canvas.height = Math.round((fullW * ch) / cw);
+        const ctx = canvas.getContext("2d");
+        ctx.imageSmoothingQuality = "high";
+        ctx.fillStyle = "#fff";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(img, cx - cw / 2, cy - ch / 2, cw, ch, 0, 0, canvas.width, canvas.height);
+        return { zoom: (fullW / cw).toFixed(1) };
+      }
+
+      const [ia, ib] = await Promise.all([load(src(A)), load(src(B))]);
+      await render(ia, document.getElementById("cA"), FULL_W);
+      await render(ib, document.getElementById("cB"), FULL_W);
+      const za = await renderDetail(ia, document.getElementById("dA_c"), FULL_W);
+      const zb = await renderDetail(ib, document.getElementById("dB_c"), FULL_W);
+
+      document.getElementById("capA").innerHTML = `${q.get("la") || A} <small>${ia.naturalWidth}×${ia.naturalHeight}</small>`;
+      document.getElementById("capB").innerHTML = `${q.get("lb") || B} <small>${ib.naturalWidth}×${ib.naturalHeight}</small>`;
+      document.getElementById("dA").textContent = `detalle ${za.zoom}×`;
+      document.getElementById("dB").textContent = `detalle ${zb.zoom}×`;
+      window.__READY__ = true;
+    </script>
+  </body>
+</html>
