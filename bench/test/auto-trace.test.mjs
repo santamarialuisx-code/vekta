@@ -98,4 +98,23 @@ test("auto-trace decide por imagen y el line art sale con un solo relleno", () =
   assert.notEqual(fidelitySvg, curvesSvg, "el modo píxel no puede emitir el mismo SVG que las curvas");
   assert.equal(fidelityScan.mode, "binario");
   assert.equal(fidelityScan.subpixelScale, 3);
+
+  // `--refit` traza igual que fidelidad y después ajusta curvas: tiene que emitir menos nodos.
+  const refitJson = path.join(root, "refit.json");
+  execFileSync(
+    process.execPath,
+    [cli, "--inputs", input, "--out", path.join(root, "out-refit"), "--json", refitJson, "--refit"],
+    { stdio: "pipe" },
+  );
+  const refit = JSON.parse(fs.readFileSync(refitJson, "utf8"));
+  const refitColor = refit.find((entry) => entry.imgSlug === "color");
+
+  assert.equal(refitColor.mode, "refit");
+  assert.equal(refitColor.fills, color.fills, "el reajuste no cambia la paleta ni las regiones");
+  const refitSvg = fs.readFileSync(path.join(root, "out-refit", refitColor.svg.split("/").pop()), "utf8");
+  assert.equal(
+    (refitSvg.match(/<path/g) ?? []).length,
+    (fs.readFileSync(path.join(root, "out-fidelity", fidelityColor.svg.split("/").pop()), "utf8").match(/<path/g) ?? []).length,
+    "el reajuste conserva una forma por región",
+  );
 });

@@ -33,7 +33,8 @@ arrancar).
    selector permite forzar cualquiera de los caminos para comparar; el modo por defecto es el que
    deciden los números. `fidelidad` usa el modo píxel del experimento 14 (sigue la frontera del
    raster en vez de ajustar curvas): en Gum Tree da 64 036 nodos, 167 KB y SSIM 0,9776 frente a
-   0,9351 de las curvas, que es el 0,9808 de Vector Magic.
+   0,9351 de las curvas, que es el 0,9808 de Vector Magic. `refit` ajusta curvas sobre esas mismas
+   etiquetas (experimento 15): 11 527 nodos, 295 KB y 0,9766, verificado en Chromium en 1 216 ms.
 3. Muestra nodos, rellenos, subpaths, tamaño, milisegundos, tamaño del lienzo y el motivo de la
    decisión (neutros, tinta, Otsu, separabilidad, aristas).
 4. Descarga el SVG y una copia con unidades físicas. El motor emite `width`/`height` en píxeles y

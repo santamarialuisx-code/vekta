@@ -20,6 +20,7 @@
     "bench:auto": "node bench/auto-trace.mjs",
     "bench:subpixel": "node bench/subpixel-sweep.mjs",
     "bench:fidelity": "node bench/color-fidelity.mjs",
+    "bench:refit": "node bench/curve-refit.mjs",
     "bench:classify": "node bench/classify.mjs",
     "bench:alpha": "node bench/alpha-cut.mjs",
     "bench:stroke": "node bench/stroke.mjs"
