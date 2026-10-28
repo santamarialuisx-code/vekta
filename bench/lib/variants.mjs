@@ -45,6 +45,14 @@ export const VARIANTS = [
   },
 ];
 
+/** Nombre estable a partir del fichero: `Gum Tree Vector.jpg` → `gum-tree-vector`. */
+export const slug = (name) =>
+  name
+    .replace(/\.(jpg|jpeg|png|gif|bmp)$/i, "")
+    .replace(/[^a-z0-9]+/gi, "-")
+    .replace(/^-|-$/g, "")
+    .toLowerCase();
+
 // Imágenes de prueba: una por categoría relevante.
 export const INPUTS = [
   {

@@ -3,6 +3,8 @@ bench/out/svg/
 bench/out/sweep/
 bench/out/cut/
 bench/out/cut-report.json
+bench/out/quantized/
+bench/out/quantize-report.json
 bench/out/metrics.json
 bench/out/sweep.json
 .atl/

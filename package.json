@@ -10,10 +10,13 @@
     "bench:merge": "node bench/merge-metrics.mjs",
     "bench:serve": "node bench/serve.mjs",
     "test": "node --test bench/test/*.test.mjs",
-    "bench:cut": "node bench/cut.mjs"
+    "bench:cut": "node bench/cut.mjs",
+    "bench:quantize": "node bench/quantize.mjs"
   },
   "dependencies": {
     "@visioncortex/vtracer": "1.0.0-alpha.4",
-    "clipper-lib": "^6.4.2"
+    "clipper-lib": "^6.4.2",
+    "jpeg-js": "^0.4.4",
+    "pngjs": "^7.0.0"
   }
 }
