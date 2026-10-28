@@ -26,8 +26,9 @@ Lo que existe hoy:
   suelto: es lo que entregan el CLI y la demo.
 - **Tres modos de color medidos**: `curvas` (Béziers, la salida para cortar y escalar), `fidelidad`
   (píxel a píxel, la que alcanza al competidor: 0,9776 / 0,9631 / 0,8365 frente a 0,9808 / 0,9672 /
-  0,8267, a costa de escalones) y `refit` (píxel + curvas ajustadas encima: 0,9766 con 11 527 nodos
-  en ilustración, la fidelidad del píxel con 5,6× menos nodos).
+  0,8267, a costa de escalones) y **`refit`** (píxel + curvas ajustadas encima: 0,9766 con 11 527
+  nodos en ilustración, la fidelidad del píxel con 5,6× menos nodos). **`refit` es el modo por
+  defecto del color**; `curvas` es el perfil de corte (`--curvas`).
 - **Línea central** opcional para grabado y plotter: un recorrido por el medio del trazo, sin rellenos.
 - **Salida de taller**: unión booleana por color, unidades en milímetros, kerf, entrada y salida de
   herramienta, anidado en hoja, DXF multicapa con tintas con nombre y orden de impresión, y silueta

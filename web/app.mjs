@@ -158,7 +158,8 @@ async function trace() {
  */
 function resolvedMode() {
   if (ui.modo.value !== "auto") return ui.modo.value;
-  return state.verdict?.lineArt ? "binario" : "paleta";
+  // El color se entrega con refit (píxel + curvas) desde el juicio a escala del experimento 15.
+  return state.verdict?.lineArt ? "binario" : "refit";
 }
 
 function clampColors(value) {
