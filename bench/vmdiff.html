@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="es">
+  <head><meta charset="utf-8" /><title>Distancia a Vector Magic</title>
+  <style>body{font:13px/1.5 ui-monospace,monospace;background:#111;color:#ddd;padding:20px;white-space:pre}</style>
+  </head>
+  <body>
+    <div id="log">calculando…</div>
+    <script type="module">
+      const CANDIDATES = [
+        "svg/gum-tree-vector__cutout.svg",
+        "svg/gum-tree-vector__cutout-opt.svg",
+        "svg/gum-tree-vector__default.svg",
+        "svg/gum-tree-vector__poster-cutout.svg",
+        "sweep/stacked_cp6_ld16_sp4.svg",
+        "sweep/stacked_cp5_ld16_sp4.svg",
+        "sweep/cutout_cp6_ld16_sp4.svg",
+      ];
+      const REF = "out/vectormagic-gumtree.png";
+      const W = 1400, H = 775;
+
+      const load = (s) => new Promise((res, rej) => {
+        const i = new Image();
+        i.onload = () => res(i); i.onerror = () => rej(new Error("fail " + s)); i.src = s;
+      });
+
+      const ctxFor = () => {
+        const c = document.createElement("canvas");
+        c.width = W; c.height = H;
+        const x = c.getContext("2d", { willReadFrequently: true });
+        x.fillStyle = "#fff"; x.fillRect(0, 0, W, H);
+        x.imageSmoothingQuality = "high";
+        return { c, x };
+      };
+
+      const gray = (data) => {
+        const g = new Float32Array(W * H);
+        for (let i = 0, p = 0; i < data.length; i += 4, p++)
+          g[p] = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
+        return g;
+      };
+      const psnr = (a, b) => {
+        let se = 0;
+        for (let i = 0; i < a.length; i++) { const d = a[i] - b[i]; se += d * d; }
+        const mse = se / a.length;
+        return mse === 0 ? 99 : 10 * Math.log10((255 * 255) / mse);
+      };
+      const ssim = (a, b) => {
+        const C1 = (0.01 * 255) ** 2, C2 = (0.03 * 255) ** 2, B = 8;
+        let t = 0, n = 0;
+        for (let y = 0; y + B <= H; y += B) for (let x = 0; x + B <= W; x += B) {
+          let sa = 0, sb = 0;
+          for (let j = 0; j < B; j++) for (let i = 0; i < B; i++) { const p = (y + j) * W + x + i; sa += a[p]; sb += b[p]; }
+          const N = B * B, ma = sa / N, mb = sb / N;
+          let va = 0, vb = 0, cov = 0;
+          for (let j = 0; j < B; j++) for (let i = 0; i < B; i++) {
+            const p = (y + j) * W + x + i; const da = a[p] - ma, db = b[p] - mb;
+            va += da * da; vb += db * db; cov += da * db;
+          }
+          va /= N; vb /= N; cov /= N;
+          t += ((2 * ma * mb + C1) * (2 * cov + C2)) / ((ma * ma + mb * mb + C1) * (va + vb + C2));
+          n++;
+        }
+        return t / n;
+      };
+
+      const refImg = await load(REF);
+      const r = ctxFor();
+      r.x.drawImage(refImg, 0, 0, W, H);
+      const ref = gray(r.x.getImageData(0, 0, W, H).data);
+
+      const out = [];
+      for (const cand of CANDIDATES) {
+        try {
+          const img = await load("out/" + cand);
+          const c = ctxFor();
+          c.x.drawImage(img, 0, 0, W, H);
+          const g = gray(c.x.getImageData(0, 0, W, H).data);
+          out.push({ cand, ssim: +ssim(ref, g).toFixed(4), psnr: +psnr(ref, g).toFixed(2) });
+        } catch (e) { out.push({ cand, error: String(e) }); }
+      }
+      document.getElementById("log").textContent = "LISTO";
+      window.__RESULTS__ = out;
+    </script>
+  </body>
+</html>
