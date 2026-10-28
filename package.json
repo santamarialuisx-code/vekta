@@ -19,7 +19,8 @@
     "bench:bw": "node bench/bw-sweep.mjs",
     "bench:auto": "node bench/auto-trace.mjs",
     "bench:subpixel": "node bench/subpixel-sweep.mjs",
-    "bench:classify": "node bench/classify.mjs"
+    "bench:classify": "node bench/classify.mjs",
+    "bench:alpha": "node bench/alpha-cut.mjs"
   },
   "dependencies": {
     "@visioncortex/vtracer": "1.0.0-alpha.4",
