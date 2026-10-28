@@ -15,3 +15,8 @@ bench/out/sweep.json
 .atl/
 .DS_Store
 *.log
+bench/out/geometry-sweep/
+bench/out/geometry-sweep*.json
+bench/out/cut-mm/
+bench/out/cut-mm-report.json
+bench/out/*.html
