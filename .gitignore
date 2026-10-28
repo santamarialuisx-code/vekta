@@ -35,3 +35,5 @@ bench/out/color-subpixel*/
 bench/out/color-subpixel*.json
 bench/out/color-fidelity*/
 bench/out/color-fidelity*.json
+bench/out/curve-refit*/
+bench/out/curve-refit*.json

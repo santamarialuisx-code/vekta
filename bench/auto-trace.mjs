@@ -16,7 +16,8 @@ import { fileURLToPath } from "node:url";
 import vtracer from "@visioncortex/vtracer";
 
 import { classifyImage, imageSignals, tracePreset } from "./lib/category.mjs";
-import { FIDELITY_COLORS, colorTraceOptions } from "./lib/color-presets.mjs";
+import { FIDELITY_COLORS, colorTraceOptions, usesRefit } from "./lib/color-presets.mjs";
+import { REFIT_DEFAULTS, refitSvg } from "./lib/color-refit.mjs";
 import { decodeImage } from "./lib/image-io.mjs";
 import { quantize, renderQuantized } from "./lib/quantize.mjs";
 import { subpixelOptions } from "./lib/subpixel.mjs";
@@ -57,8 +58,9 @@ for (const input of inputs) {
   const simplify = options.simplify === null ? preset.simplify : options.simplify;
   // La escala de muestreo es del preset: el color traza a 1× y el line art, a la del experimento 12.
   const subpixelScale = preset.scale ?? 1;
-  // `--fidelity` cambia el modo de entrega del color (experimento 14); el line art no lo mira.
-  const colorMode = options.fidelity ? "fidelidad" : "curvas";
+  // `--fidelity` y `--refit` cambian el modo de entrega del color (experimentos 14 y 15); el line
+  // art no los mira.
+  const colorMode = options.refit ? "refit" : options.fidelity ? "fidelidad" : "curvas";
 
   let svg;
   let paletteSize = 0;
@@ -72,7 +74,10 @@ for (const input of inputs) {
     } else {
       // Paleta y `simplify` salen de la categoría; `--colors` y `--simplify` los sobrescriben.
       // En foto el modo fidelidad necesita más ranuras: el detalle tonal es el tema de la imagen.
-      const presetColors = options.fidelity ? (FIDELITY_COLORS[category] ?? preset.colors) : preset.colors;
+      const presetColors =
+        options.fidelity || options.refit
+          ? (FIDELITY_COLORS[category] ?? preset.colors)
+          : preset.colors;
       const maxColors = options.colors === null ? presetColors : options.colors;
       const palette = quantize(image.rgba, image.width, image.height, { maxColors });
       const rendered = renderQuantized(image.rgba, image.width, image.height, palette);
@@ -83,6 +88,8 @@ for (const input of inputs) {
         image.height,
         colorTraceOptions(palette.paletteHex, { mode: colorMode, simplify }),
       );
+      // La segunda etapa de Vector Magic: curvas subpíxel sobre las etiquetas de píxel.
+      if (usesRefit(colorMode)) svg = refitSvg(svg, REFIT_DEFAULTS);
     }
   } catch (error) {
     console.error(`ERROR ${imgSlug}: ${error.message}`);
@@ -138,7 +145,7 @@ function presetLabel(preset, simplify, colorMode = "curvas") {
     const scale = preset.scale > 1 ? ` @${preset.scale}×` : "";
     return `bw / ${decimal(simplify)}${scale}`;
   }
-  const fidelity = colorMode === "fidelidad" ? " · fidelidad" : "";
+  const fidelity = colorMode === "fidelidad" ? " · fidelidad" : colorMode === "refit" ? " · refit" : "";
   return `${preset.colors} col / ${decimal(simplify)}${fidelity}`;
 }
 
@@ -161,6 +168,7 @@ function parseArgs(args) {
     only: null,
     inputs: null,
     fidelity: false,
+    refit: false,
   };
 
   for (let i = 0; i < args.length; i++) {
@@ -185,6 +193,9 @@ function parseArgs(args) {
         break;
       case "--fidelity":
         parsed.fidelity = true;
+        break;
+      case "--refit":
+        parsed.refit = true;
         break;
       case "--help":
         console.log(

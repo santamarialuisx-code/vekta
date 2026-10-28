@@ -24,6 +24,7 @@ npm run bench:alpha    # silueta desde el alfa de un PNG (fixture: dona 400×400
 npm run bench:stroke   # línea central para grabado y plotter (esqueleto + RDP)
 npm run bench:subpixel # muestreo subpíxel: barrido escala × simplify (1× y 3×)
 npm run bench:fidelity # color: curvas contra fidelidad de píxel, con la vara de Vector Magic
+npm run bench:refit    # color: reajuste de curvas sobre las etiquetas de píxel
 npm test               # pruebas de geometría de corte, clasificación, alfa y línea central
 ```
 
@@ -318,6 +319,25 @@ Los modos viven en `lib/color-presets.mjs` (`colorTraceOptions`, `FIDELITY_COLOR
 --fidelity` y la demo del navegador los usan. Los barridos que descartaron las otras palancas
 —subpíxel en color, profundidad de paleta, `watershed`, `polygon`— están en
 [`../docs/experimento-14-fidelidad-color.md`](../docs/experimento-14-fidelidad-color.md).
+
+## Reajuste de curvas
+
+`npm run bench:refit` traza en modo píxel y ajusta Béziers subpíxel sobre las etiquetas —la
+arquitectura de Vector Magic—, con las esquinas conservadas y un error declarado contra el borde
+suavizado. La vara es doble: SSIM y nodos.
+
+| Imagen | `curvas` | `fidelidad` (píxel) | **`refit`** | Vector Magic |
+|---|---|---:|---:|---:|
+| Gum Tree (ilustración) | 0,9351 · 7 083 | 0,9776 · 64 036 | **0,9766 · 11 527** | 0,9808 |
+| Cityscape (póster) | 0,9518 · 8 055 | 0,9631 · 21 614 | **0,9642 · 6 313** | 0,9672 |
+| Ángel (foto) | 0,6693 · 43 214 | 0,8365 · 367 032 | **0,8418 · 153 641** | 0,8267 |
+
+El ajuste vive en `lib/curve-fit.mjs` (anillos → curvas, puro) y `lib/color-refit.mjs`
+(`refitSvg`, que reescribe los `d` de un SVG del modo píxel sin tocar rellenos ni orden). Se entrega
+con tolerancia 0,25 y esquina 60°; `--configs rdp:fit:angle` barre la frontera. `auto-trace.mjs
+--refit` y la demo del navegador usan el modo.
+
+Ver [`../docs/experimento-15-reajuste-curvas.md`](../docs/experimento-15-reajuste-curvas.md).
 
 ## Paridad en foto y póster
 

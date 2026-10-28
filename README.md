@@ -11,7 +11,7 @@ del usuario— y sin el límite de 2 megapíxeles que imponen los servicios en l
 
 ## Estado
 
-Fase de validación, con el pipeline completo medido y catorce experimentos cerrados. El motor
+Fase de validación, con el pipeline completo medido y quince experimentos cerrados. El motor
 de trazado se apoya en [`vtracer`](https://github.com/visioncortex/vtracer) (MIT), que
 resuelve segmentación por color, cuantización en OKLab y ajuste de curvas de Bézier. Lo que
 Vekta añade encima es la decisión de qué hay en la imagen y la salida orientada a máquina.
@@ -24,9 +24,10 @@ Lo que existe hoy:
 - **Muestreo subpíxel** en line art: el preset se traza a 3× y devuelve la geometría a la rejilla
   original, así que el borde se estima donde está y no donde cae el píxel. No es un experimento
   suelto: es lo que entregan el CLI y la demo.
-- **Dos modos de color medidos**: `curvas` (Béziers, la salida para cortar y escalar) y `fidelidad`
-  (píxel a píxel, la que alcanza al competidor en fidelidad: 0,9776 / 0,9631 / 0,8365 frente a
-  0,9808 / 0,9672 / 0,8267, a costa de escalones y más segmentos).
+- **Tres modos de color medidos**: `curvas` (Béziers, la salida para cortar y escalar), `fidelidad`
+  (píxel a píxel, la que alcanza al competidor: 0,9776 / 0,9631 / 0,8365 frente a 0,9808 / 0,9672 /
+  0,8267, a costa de escalones) y `refit` (píxel + curvas ajustadas encima: 0,9766 con 11 527 nodos
+  en ilustración, la fidelidad del píxel con 5,6× menos nodos).
 - **Línea central** opcional para grabado y plotter: un recorrido por el medio del trazo, sin rellenos.
 - **Salida de taller**: unión booleana por color, unidades en milímetros, kerf, entrada y salida de
   herramienta, anidado en hoja, DXF multicapa con tintas con nombre y orden de impresión, y silueta
@@ -41,11 +42,12 @@ decisión de por medio tiene una cifra medida en [`bench/`](bench/README.md).
 
 | Documento | Contenido |
 |---|---|
-| [`docs/README.md`](docs/README.md) | **Índice de los catorce experimentos**: una línea por experimento con su hallazgo y su cifra, y el estado de lo que falta medir |
+| [`docs/README.md`](docs/README.md) | **Índice de los quince experimentos**: una línea por experimento con su hallazgo y su cifra, y el estado de lo que falta medir |
 | [`docs/competencia-vectormagic.md`](docs/competencia-vectormagic.md) | Análisis del competidor: producto, precios, arquitectura, limitaciones admitidas |
 | [`docs/experimento-01-vtracer-vs-vectormagic.md`](docs/experimento-01-vtracer-vs-vectormagic.md) | Medición de vtracer contra Vector Magic y veredicto de viabilidad |
 | [`docs/experimento-07-bw-adaptativo.md`](docs/experimento-07-bw-adaptativo.md) | Line art: modo binario con umbral de Otsu, F1 de tinta y por qué el adaptativo no hace falta |
 | [`docs/experimento-14-fidelidad-color.md`](docs/experimento-14-fidelidad-color.md) | El hueco de color es el ajuste de curvas: modo fidelidad, por qué el subpíxel no aplica y qué hace Vector Magic |
+| [`docs/experimento-15-reajuste-curvas.md`](docs/experimento-15-reajuste-curvas.md) | Reajuste de curvas sobre las etiquetas de píxel: el método, la frontera de tolerancia y el índice que lo deja en 1,2 s |
 | [`bench/README.md`](bench/README.md) | Banco de pruebas: cómo medir fidelidad y economía de nodos |
 
 ## Demo en el navegador

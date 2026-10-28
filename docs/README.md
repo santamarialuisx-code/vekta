@@ -1,6 +1,6 @@
 # Vekta — índice de experimentos
 
-Catorce experimentos sobre el mismo banco de cuatro imágenes, más el análisis del competidor. Cada
+Quince experimentos sobre el mismo banco de cuatro imágenes, más el análisis del competidor. Cada
 línea es una pregunta cerrada con una cifra; el documento enlazado tiene el método, las tablas
 completas y lo que ese experimento **no** prueba.
 
@@ -20,6 +20,7 @@ completas y lo que ese experimento **no** prueba.
 | [12 — subpíxel](experimento-12-subpixel.md) | ¿dónde está el borde? | En el subpíxel: trazar a 3× compra F1 y el preset se queda en 3× / 1,2; a 4× ya no se paga. | F1 0,9436 → 0,9670 con 31 500 nodos (preset); techo 0,9773 a 3× sin simplificar |
 | [13 — paridad en foto](experimento-13-vectormagic-foto.md) | ¿el hueco de 0,032 es estructural? | Depende de la categoría: en foto se multiplica por cinco y ahí sí es de modelo. | Hueco 0,1574 en foto, 0,0154 en póster, 0,0457 en ilustración |
 | [14 — fidelidad en color](experimento-14-fidelidad-color.md) | ¿se cierra el hueco con muestreo o paleta? | Ni una ni otra: es el ajuste de curvas. Trazando píxel a píxel se alcanza al competidor. | SSIM 0,9351 → 0,9776 (ilustración), 0,9518 → 0,9631 (póster), 0,6693 → 0,8365 (foto, por encima de VM) |
+| [15 — reajuste de curvas](experimento-15-reajuste-curvas.md) | ¿se puede tener la fidelidad del píxel con curvas? | Sí: píxel + Béziers encima, que es la arquitectura de Vector Magic. | 0,9766 con 11 527 nodos (el píxel pide 64 036); póster y foto superan al píxel |
 | [Competencia — Vector Magic](competencia-vectormagic.md) | ¿qué hace el competidor y dónde falla? | Producto maduro y estrecho: la calidad está en el cuestionario, no en un algoritmo inalcanzable. | 7,99 USD/mes web, 295 USD escritorio, 2 MP; DXF solo en escritorio |
 
 ## El hilo, en cinco pasos
@@ -39,9 +40,9 @@ completas y lo que ese experimento **no** prueba.
 5. **La máquina (09, 10, 11, 12, 13).** Lo que falta para que el archivo salga del taller: cresta en
    vez de contorno, entrada y anidado, alfa como frontera de pieza, muestreo subpíxel en line art, y
    el mapa de dónde duele de verdad frente al competidor (foto).
-6. **La fidelidad (14).** En color el hueco no era muestreo ni paleta: era el ajuste de curvas. Con
-   píxel a píxel se alcanza al competidor en las tres categorías; falta poner curvas subpíxel encima
-   de esas etiquetas para tener las dos cosas a la vez.
+6. **La fidelidad (14, 15).** En color el hueco no era muestreo ni paleta: era el ajuste de curvas.
+   Con píxel a píxel se alcanza al competidor, y ajustando curvas subpíxel sobre esas etiquetas se
+   tiene la fidelidad del píxel con 5,6× menos nodos: 0,9766 con 11 527 en ilustración.
 
 ## Cómo se mide
 
@@ -66,9 +67,8 @@ Dicho aquí para que nadie cite como resultado lo que es una línea de trabajo:
   de llamarlo precisión. Cualquier porcentaje de acierto sobre estas cuatro sería circular.
 - **Foto (13)**: una sola foto sostiene la conclusión de la categoría más cara de cerrar.
 - **Alfa (11)**: el fixture es sintético; falta un PNG real con sombras y bordes suaves.
-- **Fidelidad de color (14)**: el modo píxel alcanza al competidor en SSIM, pero no hay todavía
-  reajuste de curvas sobre esas etiquetas (≥0,97 con ≤20 000 nodos) ni juicio a escala de los dos
-  modos. La foto en modo fidelidad cuesta 367 032 nodos: falta el presupuesto tonal adaptativo.
+- **Fidelidad de color (14, 15)**: falta el juicio a escala 3× de los tres modos, y la foto sigue
+  costando 153 641 nodos en modo refit (367 032 en píxel): falta el presupuesto tonal adaptativo.
 
 ## Errata
 

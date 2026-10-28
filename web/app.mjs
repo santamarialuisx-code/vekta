@@ -11,6 +11,7 @@
 // píxeles de `file://` sin taint de CORS, ni siquiera haría falta.
 
 import { colorTraceOptions } from "../bench/lib/color-presets.mjs";
+import { REFIT_DEFAULTS, refitSvg } from "../bench/lib/color-refit.mjs";
 import { LINE_ART_SCALE, lineArtOptions, lineArtSignals, looksLikeLineArt } from "../bench/lib/lineart.mjs";
 import { quantize, renderQuantized } from "../bench/lib/quantize.mjs";
 import { subpixelFrame, rescaleSvg } from "../bench/lib/subpixel-transform.mjs";
@@ -137,10 +138,12 @@ async function trace() {
       state.width,
       state.height,
       colorTraceOptions(palette.paletteHex, {
-        mode: puesto === "fidelidad" ? "fidelidad" : "curvas",
+        mode: puesto === "curvas" ? "curvas" : "fidelidad",
         simplify: COLOR_SIMPLIFY,
       }),
     );
+    // `refit` es el modo píxel con curvas ajustadas encima (experimento 15).
+    if (puesto === "refit") svg = refitSvg(svg, REFIT_DEFAULTS);
   }
   state.ms = Math.round(performance.now() - started);
 

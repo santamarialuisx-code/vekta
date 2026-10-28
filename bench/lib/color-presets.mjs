@@ -10,6 +10,11 @@
 // 0,9518 a 0,9631 en póster, al nivel del competidor (0,9808 / 0,9672), y el archivo pesa menos.
 // El precio es geométrico: los bordes son escalones de píxel y no se escalan con dignidad.
 //
+// `refit` es la segunda etapa del experimento 15: el modo píxel da la fidelidad y `color-refit.mjs`
+// ajusta curvas sobre esas etiquetas. En Gum Tree queda en 0,9766 con 11 527 nodos (el píxel puro
+// pide 64 036) y en póster supera al píxel. Traza igual que `fidelidad`; lo que cambia es el paso
+// posterior, que ejecuta quien compone el pipeline (`auto-trace.mjs`, la demo).
+//
 // La paleta no cambia entre modos para ilustración y póster; en foto el modo fidelidad necesita más
 // ranuras (24): con 12, el 0,7729 del modo pixel se queda corto.
 
@@ -17,7 +22,13 @@
 export const COLOR_MODES = {
   curvas: { mode: "spline", hierarchical: "cutout" },
   fidelidad: { mode: "pixel", filterSpeckle: 2 },
+  refit: { mode: "pixel", filterSpeckle: 2 },
 };
+
+/** ¿El modo necesita reajustar curvas después de trazar? Solo `refit`. */
+export function usesRefit(mode) {
+  return mode === "refit";
+}
 
 /**
  * Ranuras de paleta del modo fidelidad por categoría.
