@@ -1,9 +1,9 @@
 // Unión booleana por color y medición del doble corte.
 //
 // Una salida teselada por colores asigna cada borde interno a dos formas, así que la máquina
-// recorre ese borde dos veces. `redundancy` mide el exceso por capa de color (recorte por
-// capas: vinilo, DTF) y `singlePassRedundancy` el exceso en una sola pasada (láser, CNC),
-// donde incluso el borde entre dos colores distintos se corta dos veces.
+// recorre ese borde dos veces. `redundancy` mide el exceso al cortar por capas de color
+// (vinilo, DTF, cada color en su lámina) y `singlePassRedundancy` el exceso al cortar todos
+// los bordes de una sola pasada, donde cada borde debería recorrerse una única vez.
 //
 // El kernel es Clipper (enteros, tolerante a aristas colineales y auto-intersecciones). Los
 // ports JS de Martinez (`polygon-clipping`, `polyclip-ts`) fallan con la salida real de un
@@ -18,6 +18,12 @@ const ClipperLib = require("clipper-lib");
 
 const CLIP_SCALE = 1000; // 0,001 px de resolución: muy por debajo de la tolerancia de corte
 const MIN_RING_AREA = 0.5; // px²: por debajo no hay nada que cortar, es ruido de aplanado
+
+// Cierre morfológico. Dos regiones contiguas comparten borde, pero cada una lo aproxima con
+// su propio Bézier: al aplanar quedan rendijas de centésimas de píxel. No son diseño ni se
+// pueden cortar, y sin cerrarlas la unión devuelve anillos-hairline que inflan el perímetro.
+// 0,5 px = 2× la tolerancia de aplanado, muy por debajo de cualquier kerf real.
+const CLOSE_GAP = 0.5;
 
 /**
  * Agrupa las formas por color y separa contornos de agujeros.
@@ -65,7 +71,7 @@ export function analyzeShapes(shapes, { tolerance = 0.25, minArea = MIN_RING_ARE
  * @param {number[][][][]} polygons
  * @returns {number[][][]} anillos cerrados
  */
-export function unionRings(polygons, { scale = CLIP_SCALE } = {}) {
+export function unionRings(polygons, { scale = CLIP_SCALE, closeGap = CLOSE_GAP } = {}) {
   if (polygons.length === 0) return [];
   if (polygons.length === 1) return polygons[0].map(closeRing);
 
@@ -85,7 +91,10 @@ export function unionRings(polygons, { scale = CLIP_SCALE } = {}) {
     ClipperLib.PolyFillType.pftNonZero,
   );
 
-  return solution
+  const gap = Math.round(closeGap * scale);
+  const merged = gap > 0 ? closeGaps(solution, gap) : solution;
+
+  return merged
     .map((path) => path.map((point) => [point.X / scale, point.Y / scale]))
     .filter((ring) => ring.length >= 3)
     .map(closeRing);
@@ -102,10 +111,12 @@ export function ringsLength(rings) {
  * @param {{ d: string, fill?: string, fillRule?: string }[]} shapes
  * @returns {{
  *   shapeCount: number, colorCount: number, contourCount: number, holeCount: number,
- *   outlineLength: number, layerLength: number, cutLength: number,
- *   redundancy: number, singlePassRedundancy: number,
+ *   outlineLength: number, layerLength: number, silhouetteLength: number,
+ *   uniqueCutLength: number, redundancy: number, singlePassRedundancy: number,
  *   duplicateLength: number, singlePassDuplicateLength: number
  * }}
+ * `outlineLength` es lo que trae el SVG; `layerLength` la unión por color; `silhouetteLength`
+ * la unión de todo; `uniqueCutLength` el óptimo de una pasada con cada borde una sola vez.
  */
 export function cutStats(shapes, options = {}) {
   const analysis = analyzeShapes(shapes, options);
@@ -213,6 +224,20 @@ function toClipperPath(ring, { scale, orientation }) {
   if (orientation > 0 && signedArea(points) < 0) points.reverse();
   if (orientation < 0 && signedArea(points) > 0) points.reverse();
   return points;
+}
+
+// Cierre morfológico: dilatar y volver a contraer. Une las rendijas sin mover el contorno.
+function closeGaps(paths, delta) {
+  const grown = offsetPaths(paths, delta);
+  return offsetPaths(grown, -delta);
+}
+
+function offsetPaths(paths, delta) {
+  const offset = new ClipperLib.ClipperOffset(2, 0.25);
+  offset.AddPaths(paths, ClipperLib.JoinType.jtMiter, ClipperLib.EndType.etClosedPolygon);
+  const result = new ClipperLib.Paths();
+  offset.Execute(result, delta);
+  return result;
 }
 
 function signedArea(points) {

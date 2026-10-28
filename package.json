@@ -9,7 +9,8 @@
     "bench:sweep": "node bench/sweep.mjs",
     "bench:merge": "node bench/merge-metrics.mjs",
     "bench:serve": "node bench/serve.mjs",
-    "test": "node --test bench/test/*.test.mjs"
+    "test": "node --test bench/test/*.test.mjs",
+    "bench:cut": "node bench/cut.mjs"
   },
   "dependencies": {
     "@visioncortex/vtracer": "1.0.0-alpha.4",
