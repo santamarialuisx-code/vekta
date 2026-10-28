@@ -2,7 +2,9 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import {
+  LINE_ART_PRESET,
   LINE_ART_RULES,
+  LINE_ART_SCALE,
   edgeDensity,
   lineArtOptions,
   lineArtSignals,
@@ -170,10 +172,20 @@ test("el preset de line art traza con el Otsu de la imagen, un nivel por encima"
   assert.equal(opts.binaryThreshold, 51);
   assert.equal(opts.clustering, "bw");
   assert.equal(opts.adaptive, undefined, "Bradley–Roth pierde 0,02 de F1 en un escaneo");
-  assert.equal(opts.simplify, 0.8);
+  assert.equal(opts.simplify, 1.2, "el preset se midió a 3×: con el muestreo fino 1,2 no se pasa");
 
   assert.equal(lineArtOptions(signals, { simplify: 0 }).simplify, 0);
   assert.throws(() => lineArtOptions(), /señales/);
+});
+
+test("el preset de line art se muestrea a 3× y no filtra la escala al motor", () => {
+  // La escala es del preset (cómo se lee la imagen), no del motor: si viajara dentro de las
+  // opciones, `vtracer` recibiría una clave que no conoce y nada lo delataría.
+  assert.equal(LINE_ART_SCALE, 3, "3× es el codo medido en el experimento 12");
+
+  const opts = lineArtOptions({ threshold: 128 });
+  assert.equal("scale" in opts, false);
+  assert.equal(opts.simplify, LINE_ART_PRESET.simplify);
 });
 
 test("el umbral del preset no se sale de 8 bits", () => {

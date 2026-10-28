@@ -22,7 +22,7 @@ npm run bench:auto     # decide la categoría por imagen y traza con su preset
 npm run bench:classify # categoría, señales y preset por imagen, sin trazar
 npm run bench:alpha    # silueta desde el alfa de un PNG (fixture: dona 400×400)
 npm run bench:stroke   # línea central para grabado y plotter (esqueleto + RDP)
-npm run bench:subpixel # muestreo subpíxel: barrido de escalas 1× a 4×
+npm run bench:subpixel # muestreo subpíxel: barrido escala × simplify (1× y 3×)
 npm test               # pruebas de geometría de corte, clasificación, alfa y línea central
 ```
 
@@ -69,7 +69,8 @@ bench/
   lib/spot.mjs         tintas: una capa por color, área y orden de impresión
   lib/alpha.mjs        alfa → máscara del sujeto → imagen binaria para el motor
   lib/skeleton.mjs     máscara de tinta, adelgazado Zhang–Suen y traza de la cresta
-  lib/subpixel.mjs     ampliado bilineal y reescalado del `d` a la rejilla original
+  lib/subpixel-transform.mjs  geometría pura: ampliado bilineal, reescalado del `d` y del SVG
+  lib/subpixel.mjs     trazado subpíxel con el motor (`traceSubpixel`, `subpixelOptions`)
   quantize.mjs         CLI: paleta de N colores + informe de ΔE
   pipeline.mjs         CLI: cuantizar → trazar y comparar con el trazado directo
   pipeline-sweep.mjs   CLI: barrido maxColors × simplify
@@ -80,7 +81,7 @@ bench/
   classify.mjs         CLI: tabla de decisión por imagen, sin trazar
   alpha-cut.mjs        CLI: silueta y DXF desde el alfa de un PNG
   stroke.mjs           CLI: línea central (`--tolerance`, `--only`, `--inputs`)
-  subpixel-sweep.mjs   CLI: barrido de escalas de muestreo subpíxel
+  subpixel-sweep.mjs   CLI: barrido escala × simplify del muestreo subpíxel
   cut.mjs              CLI: informe + SVG/DXF cortable (`npm run bench:cut`)
   test/                pruebas de geometría, corte, clasificación, alfa y línea central (`node --test`)
   run.mjs  sweep.mjs  merge-metrics.mjs  serve.mjs
@@ -152,9 +153,11 @@ Ver [`../docs/experimento-05-geometria.md`](../docs/experimento-05-geometria.md)
 ## Line art y modo binario
 
 `npm run bench:bw` barre el modo binario del motor, que hasta el experimento 07 estaba sin tocar.
-Sobre el escaneo K1 el preset (`clustering: 'bw'`, umbral de Otsu de la imagen, `simplify` 0,8) pasa de
+Sobre el escaneo K1 el preset de aquel experimento (`clustering: 'bw'`, umbral de Otsu de la imagen,
+`simplify` 0,8, trazado a 1×) pasa de
 **174 451 nodos y 28 rellenos** a **17 749 nodos y 1 relleno**, con **+0,032 de F1 de tinta** y 20×
-menos tiempo. El adaptativo de Bradley–Roth pierde 0,019 de F1: con el fondo uniforme de un escaneo,
+menos tiempo. El que se entrega hoy es el mismo preset muestreado a 3× (ver «Muestreo subpíxel»). El
+adaptativo de Bradley–Roth pierde 0,019 de F1: con el fondo uniforme de un escaneo,
 la media local ensucia el corte.
 
 `bench/bw.html` mide con dos varas: SSIM contra el original (comparable con el resto de experimentos)
@@ -207,7 +210,8 @@ archivo, para que la cifra no sea una promesa. Ver
 
 `npm run bench:classify` imprime categoría, señales y preset sin escribir un SVG; `bench:auto` decide y
 traza. Las cuatro imágenes del banco caen donde las midió el experimento 04: ilustración 12 col / 0,6
-(7 083 nodos), póster 16 / 0,8 (8 055), foto 12 / 0,8 (43 214) y line art en binario (17 749).
+(7 083 nodos), póster 16 / 0,8 (8 055), foto 12 / 0,8 (43 214) y line art en binario a 3× / 1,2
+(31 500).
 
 La regla es una **cascada de umbrales con motivo**, no un clasificador: line art por neutro ≥ 90 % y
 tinta ≤ 40 %, foto por > 2 000 colores, entropía > 0,85 o gris sin ser line art, póster por croma medio
@@ -219,11 +223,13 @@ Ver [`../docs/experimento-08-clasificacion.md`](../docs/experimento-08-clasifica
 ## Línea central
 
 `npm run bench:stroke` adelgaza la máscara de tinta (Zhang–Suen), corta en los nodos y simplifica con
-RDP. En K1 el mismo trazado pasa de **189 957 px de contorno a 114 956 px de cresta (−39,5 %)** con
-**0 rellenos** (`stroke`, `fill="none"`), 21 621 nodos y 205 KB. A `--tolerance 2` los nodos quedan a
-la par del contorno (18 852 contra 17 749) manteniendo el −40,4 % de recorrido.
+RDP. En K1 el mismo trazado pasa de **196 796 px de contorno a 114 956 px de cresta (−41,6 %)** con
+**0 rellenos** (`stroke`, `fill="none"`), 21 621 nodos y 205 KB. A `--tolerance 2` los nodos bajan a
+18 852 manteniendo el −42,4 % de recorrido.
 
-Se gana en recorrido, no en nodos, y el precio está dicho: 8 587 polilíneas —un plotter levanta la
+El contorno de comparación se mide con el preset que se entrega (3× / 1,2), no con un trazado a 1× que
+ya no sale del producto: por eso el contorno son 31 500 nodos y 982 KB, y no los 17 749 de antes. Se
+gana en recorrido y también en nodos, y el precio está dicho: 8 587 polilíneas —un plotter levanta la
 pluma 8 587 veces—, 19 % de espuelas de menos de 3 px, y sin eje medial: un bloque macizo colapsa a un
 punto. SSIM y F1 quedan pendientes de una vara propia.
 
@@ -262,17 +268,29 @@ Ver [`../docs/experimento-11-alfa.md`](../docs/experimento-11-alfa.md).
 ## Muestreo subpíxel
 
 `npm run bench:subpixel` amplía la imagen antes de decidir la tinta y devuelve la geometría a la
-rejilla original. Todo lo demás es el preset del experimento 07, así que la escala 1× reproduce el SVG
-de `bw-sweep` con el `d` idéntico: es el control del montaje.
+rejilla original. La escala y el `simplify` se barren por separado: el control del montaje es la fila
+1× con `simplify` 0,8, que reproduce el SVG de `bw-sweep` del experimento 07 con el `d` idéntico.
 
-| K1 | Nodos | SSIM | F1 de tinta | Tiempo |
-|---|---:|---:|---:|---:|
-| 1× | 17 749 | 0,8103 | 0,9436 | 520 ms |
-| **3×** | **41 918** | **0,8359** | **0,9722** | 3 742 ms |
-| 4× | 51 206 | 0,8369 | 0,9726 | 6 509 ms |
+El barrido cruza escala × `simplify` (`--scale 1,3` y `--simplify 0,0.4,0.8,1,1.2` por defecto;
+`--all` para las cuatro imágenes en vez de solo las que el banco clasifica como line art). El JSON
+tiene la forma de `bw-sweep.mjs` más `scale` y `simplify`, así que `/bw.html?json=out/subpixel-sweep.json`
+lo mide sin cambios.
 
-Se entrega 3×: 4× gana 0,0004 de F1 por +22 % de nodos y +74 % de tiempo. El borde estaba cuantizado
-al píxel.
+| K1 | Nodos | Tamaño | SSIM | F1 de tinta | Tiempo |
+|---|---:|---:|---:|---:|---:|
+| 1× con `simplify` 0,8 (preset anterior, referencia) | 17 749 | 366 KB | 0,8103 | 0,9436 | 380 ms |
+| 1× sin simplificar (referencia de fidelidad) | 34 592 | 751 KB | 0,8116 | 0,9595 | 478 ms |
+| **3× con `simplify` 1,2 (preset entregado)** | **31 500** | **982 KB** | **0,8348** | **0,9670** | **2 549 ms** |
+| 3× sin simplificar (techo de F1 a 3×) | 100 983 | 3 128 KB | 0,8363 | 0,9773 | 2 893 ms |
+
+El preset se queda en **3× con `simplify` 1,2**: con la regla del experimento 07 (F1 dentro de 0,016
+del mejor de la malla) es la fila con menos nodos que cumple, y supera al 1× sin simplificar con menos
+nodos que él. Frente al preset anterior cuesta +77 % de nodos y +168 % de bytes para +0,0234 de F1.
+
+La escala y el `simplify` ya están cableados en `lib/lineart.mjs` (`LINE_ART_SCALE` y
+`LINE_ART_PRESET.simplify`): de ahí los toman `auto-trace.mjs` (el informe lleva `subpixelScale`),
+`classify.mjs` (lo imprime como `bw / 1,2 @3×`) y la demo del navegador. La escala es del muestreo, no
+del motor: no viaja dentro de las opciones de `vtracer`.
 
 Ver [`../docs/experimento-12-subpixel.md`](../docs/experimento-12-subpixel.md).
 

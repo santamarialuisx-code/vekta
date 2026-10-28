@@ -7,10 +7,18 @@
 
 import test from "node:test";
 import assert from "node:assert/strict";
+import fs from "node:fs";
 
 import { parsePath, pathToPolylines } from "../lib/path-to-polyline.mjs";
 import { svgMetrics } from "../lib/svg-metrics.mjs";
-import { FIXED_DECIMALS, scalePathData, subpixelOptions, upsampleLuminance } from "../lib/subpixel.mjs";
+import {
+  FIXED_DECIMALS,
+  scalePathData,
+  subpixelFrame,
+  subpixelOptions,
+  traceSubpixel,
+  upsampleLuminance,
+} from "../lib/subpixel.mjs";
 
 // Un `d` con los diez comandos, absolutos y relativos, en el mismo orden en que los emite el motor
 // más los que solo aparecen al reescribir a mano.
@@ -105,6 +113,49 @@ test("upsampleLuminance rechaza escalas no enteras y buffers cortos", () => {
   assert.throws(() => upsampleLuminance(Float32Array.from([0]), 1, 1, 0), /entero ≥ 1/);
   assert.throws(() => upsampleLuminance(Float32Array.from([0]), 1, 1, 1.5), /entero ≥ 1/);
   assert.throws(() => upsampleLuminance(Float32Array.from([0, 0]), 3, 1, 2), /width × height/);
+});
+
+test("subpixelFrame entrega la luminancia ampliada como RGBA gris opaco", () => {
+  // Dos píxeles, blanco y negro: a 2× la rampa cae en 191,25 y 63,75, que es lo que el motor verá.
+  const frame = subpixelFrame({ width: 2, height: 1, gray: Float32Array.from([255, 0]), threshold: 128 }, 2);
+
+  assert.deepEqual([frame.width, frame.height], [4, 2]);
+  assert.equal(frame.rgba.length, 4 * 2 * 4);
+  assert.deepEqual(Array.from(frame.rgba.slice(0, 8)), [255, 255, 255, 255, 191, 191, 191, 255]);
+  assert.deepEqual(Array.from(frame.rgba.slice(8, 12)), [64, 64, 64, 255]);
+  assert.equal(frame.rgba[31], 255, "el alfa tiene que quedar opaco hasta el último píxel");
+});
+
+test("traceSubpixel traza ampliado y devuelve la geometría al marco original", () => {
+  const calls = [];
+  const fake = (rgba, width, height, options) => {
+    calls.push({ rgba, width, height, options });
+    return `<svg width="${width}" height="${height}"><path d="M0 0 L6 3" fill="#000"/></svg>`;
+  };
+
+  const signals = { width: 2, height: 1, gray: Float32Array.from([0, 255]), threshold: 200 };
+  const svg = traceSubpixel(fake, signals, { scale: 3, simplify: 0.4 });
+
+  assert.equal(calls.length, 1);
+  assert.deepEqual([calls[0].width, calls[0].height], [6, 3], "el motor ve la imagen ampliada");
+  assert.equal(calls[0].options.binaryThreshold, 201, "el umbral es el Otsu original + 1");
+  assert.equal(calls[0].options.simplify, 0.4, "el simplify del preset llega al motor");
+  assert.equal(calls[0].options.clustering, "bw");
+
+  assert.match(svg, /viewBox="0 0 2 1"/);
+  assert.match(svg, /width="2"/);
+  assert.match(svg, /height="1"/);
+  assert.match(svg, /d="M 0 0 L 2 1"/, "la geometría se divide por la escala");
+});
+
+test("la parte pura del subpíxel no importa el motor de Node", () => {
+  // Es el contrato de la demo: `web/app.mjs` importa este módulo en el navegador, donde el paquete
+  // `@visioncortex/vtracer` no se puede resolver sin bundler. Un import de motor aquí rompe la demo
+  // sin romper ninguna prueba de Node, así que se vigila el texto del módulo.
+  const source = fs.readFileSync(new URL("../lib/subpixel-transform.mjs", import.meta.url), "utf8");
+
+  assert.doesNotMatch(source, /^\s*import\s[^;]*from\s+["']@visioncortex/m);
+  assert.doesNotMatch(source, /^\s*import\s[^;]*from\s+["']node:/m);
 });
 
 test("subpixelOptions devuelve el SVG en el marco de la imagen original", () => {

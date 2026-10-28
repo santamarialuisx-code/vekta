@@ -13,28 +13,31 @@
 vuelta por cada trazo, más la cáscara de cada mancha), esta vía entrega la cresta: un solo recorrido
 por el medio del trazo, que es lo que necesitan un grabado y un plotter de pluma.
 
-En K1 la línea central mide **114 956 px frente a los 189 957 px del contorno** del mismo trazado:
-**−39,5 % de recorrido**, con el mismo umbral y la misma máscara de tinta que el preset del
-experimento 07.
+En K1 la línea central mide **114 956 px frente a los 196 796 px del contorno** del mismo trazado:
+**−41,6 % de recorrido**, con el mismo umbral y la misma máscara de tinta que el preset del
+experimento 07. El contorno de comparación se re-midió con el preset que se entrega desde el
+experimento 12 —3× de muestreo y `simplify` 1,2—, no con el trazado a 1× que había cuando se escribió
+esta tabla.
 
-| K1 (3000×1200, umbral Otsu 135→136) | Contorno (preset binario) | Línea central (`--tolerance 1`) |
+| K1 (3000×1200, umbral Otsu 135→136) | Contorno (preset binario 3×) | Línea central (`--tolerance 1`) |
 |---|---:|---:|
-| Recorrido | 189 957 px | **114 956 px** |
-| Nodos en el SVG | 17 749 | 21 621 |
-| Subpaths / polilíneas | 2 179 | 8 587 |
+| Recorrido | 196 796 px | **114 956 px** |
+| Nodos en el SVG | 31 500 | 21 621 |
+| Subpaths / polilíneas | 2 687 | 8 587 |
 | Rellenos | 1 | **0 (`stroke`, `fill: none`)** |
-| Tamaño del SVG | 366 KB | 205 KB |
-| Tiempo (cómputo, sin decodificar) | 500–560 ms | 515 ms |
+| Tamaño del SVG | 982 KB | 205 KB |
+| Tiempo (cómputo, sin decodificar) | 3 506 ms | 515 ms |
 | SSIM | PENDIENTE-MEDIR | PENDIENTE-MEDIR |
 | F1 de tinta | PENDIENTE-MEDIR | PENDIENTE-MEDIR |
 
 Tres cosas que hay que decir juntas:
 
-1. **Se gana en tinta recorrida, no en nodos.** A `--tolerance 1` la línea central tiene un 22 % más
-   de nodos que el contorno suavizado, porque es una polilínea que sigue el escalón del píxel
-   mientras el contorno es una curva ajustada. A `--tolerance 2` los nodos quedan a la par (18 852
-   contra 17 749) manteniendo el −40,4 % de recorrido. La métrica que importa para una máquina es el
-   recorrido y el número de veces que la pluma baja.
+1. **Se gana en tinta recorrida y, con el preset entregado, también en nodos.** A `--tolerance 1` la
+   línea central tiene 21 621 nodos frente a los 31 500 del contorno; a `--tolerance 2`, 18 852, con
+   el −42,4 % de recorrido. Con el preset anterior (1×, 17 749 nodos) la línea central costaba un
+   22 % más de nodos: el contorno era una curva ajustada y la cresta sigue el escalón del píxel. La
+   comparación depende del muestreo del contorno, y por eso se mide contra el preset que se entrega.
+   La métrica que importa para una máquina es el recorrido y el número de veces que la pluma baja.
 2. **Cero rellenos.** El SVG emitido lleva `stroke` y `fill="none"`: es un camino, no una silueta. Un
    grabador ya no tiene que decidir qué lado del borde es interior.
 3. **No hay eje medial.** El adelgazado conserva la topología, así que un bloque macizo colapsa a un
@@ -103,11 +106,12 @@ escribir el SVG.
 | `traceSkeleton` | 58 | 8 587 polilíneas, 124 107 puntos, 120 747 px |
 | RDP (`tolerance` 1) | 15 | 21 621 nodos, 114 956 px |
 | **total del CLI** (suma lo anterior + SVG + informe) | **626–689** | SVG de 205 KB + informe |
-| contorno de comparación (motor binario + medición) | 500–560 | 17 749 nodos, 189 957 px, 366 KB |
+| contorno de comparación (preset 3× + medición) | 3 506 | 31 500 nodos, 196 796 px, 982 KB |
 
 
 El adelgazado se lleva el 60 % del cómputo: es una pasada por los píxeles que siguen siendo tinta,
-dos veces por iteración. El contorno del motor tarda lo mismo para dar un 65 % más de recorrido.
+dos veces por iteración. El contorno del motor tarda 3,5 s —seis veces más— para dar un 71 % más de
+recorrido: el precio del muestreo a 3× del experimento 12, que se paga igual en la línea central.
 
 La escalera de píxel sobreestima: sin RDP el recorrido es 120 747 px, un 4,8 % más, porque cada paso
 diagonal mide √2 lo que mide su proyección. La tabla de tolerancias, medida sobre las mismas 8 587

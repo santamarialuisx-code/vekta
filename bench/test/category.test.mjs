@@ -145,8 +145,10 @@ test("trazar un line art usa el preset binario, no el de color del experimento 0
 
   assert.equal(preset.colors, 1);
   assert.equal(preset.clustering, "bw");
-  assert.equal(preset.simplify, 0.8);
+  assert.equal(preset.simplify, 1.2);
+  assert.equal(preset.scale, 3, "el line art se muestrea a 3×; el color no lleva escala");
   assert.equal(preset.binaryThreshold, signals.threshold + 1);
+  assert.equal(tracePreset("poster").scale, undefined);
   assert.deepEqual(tracePreset("poster"), { colors: 16, simplify: 0.8 });
   assert.deepEqual(tracePreset("illustration"), { colors: 12, simplify: 0.6 });
   assert.throws(() => tracePreset("acuarela"), /categoría desconocida/);
@@ -243,7 +245,7 @@ test("classify.mjs imprime la tabla de decisión y no traza nada", () => {
     assert.match(stdout, /preset/);
     assert.match(stdout, /^scan\s+line-art/m);
     assert.match(stdout, /^poster\s+poster/m);
-    assert.match(stdout, /^scan\s+line-art.*bw \/ 0,8/m);
+    assert.match(stdout, /^scan\s+line-art.*bw \/ 1,2 @3×/m);
     assert.deepEqual(fs.readdirSync(root), ["in"], "el clasificador no escribe ficheros");
   } finally {
     fs.rmSync(root, { recursive: true, force: true });
@@ -276,7 +278,8 @@ test("auto-trace elige el preset por categoría y conserva el camino binario", (
     assert.equal(scanRow.preset.clustering, "bw");
     assert.equal(scanRow.preset.colors, 1);
     assert.equal(scanRow.preset.binaryThreshold, 51);
-    assert.equal(scanRow.preset.simplify, 0.8);
+    assert.equal(scanRow.preset.simplify, 1.2);
+    assert.equal(scanRow.subpixelScale, 3);
 
     // Lo nuevo: el color ya no lleva un preset único, lleva el de su categoría.
     assert.equal(posterRow.category, "poster");

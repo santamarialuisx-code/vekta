@@ -195,7 +195,20 @@ export function looksLikeLineArt(signals) {
 }
 
 /**
- * Preset de line art, medido en el experimento 07.
+ * Escala de muestreo del preset de line art.
+ *
+ * El experimento 12 midió el codo en 3×: trazar a 3× y devolver la geometría a la rejilla compra
+ * +0,0286 de F1 de tinta (0,9436 → 0,9722) y +0,0256 de SSIM en K1; 4× gana +0,0004 de F1 por
+ * +22 % de nodos y 2× afina el trazo de más. La continuación del mismo experimento barrió
+ * `simplify` a 3× y dejó el preset en 1,2, que es el que se entrega.
+ *
+ * La escala es del **muestreo**, no del motor: no viaja dentro de las opciones de `vtracer` (que no
+ * la conoce) sino en la composición de `subpixel.mjs`.
+ */
+export const LINE_ART_SCALE = 3;
+
+/**
+ * Preset de line art, medido en el experimento 07 y confirmado a 3× en el 12.
  *
  * `binaryThreshold` no es un número: es el Otsu de la propia imagen, que en K1 (135) cae justo en la
  * banda que gana el barrido de umbral fijo (128–144). Bradley–Roth (`adaptive`) queda fuera a
@@ -207,8 +220,13 @@ export const LINE_ART_PRESET = {
   hierarchical: "cutout",
   optimize: 2,
   clustering: "bw",
-  /** `simplify` 0,8: la mitad de nodos por 0,016 de F1. A 1,2 la caída ya es 0,026. */
-  simplify: 0.8,
+  /**
+   * `simplify` 1,2 medido **a 3×** (experimento 12, continuación): F1 de tinta 0,9670 frente a
+   * 0,9773 sin simplificar, y 31 500 nodos frente a 100 983. A 1× el mismo 1,2 caía a 0,9326 y por
+   * eso el preset se quedaba en 0,8; con el muestreo fino la curva es mucho más plana y 1,2 sigue
+   * por encima del 1× sin simplificar (0,9595) con menos nodos que él (31 500 frente a 34 592).
+   */
+  simplify: 1.2,
 };
 
 /**

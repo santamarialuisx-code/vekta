@@ -65,6 +65,9 @@ test("auto-trace decide por imagen y el line art sale con un solo relleno", () =
   assert.ok(scan.nodes > 0);
   // Bimodal justa: Otsu devuelve el nivel de la tinta, 50.
   assert.equal(scan.threshold, 50);
+  // El preset se traza a 3× y vuelve al marco del PNG; el color no paga ese muestreo.
+  assert.equal(scan.subpixelScale, 3);
+  assert.equal(color.subpixelScale, 1);
   assert.ok(fs.existsSync(path.join(output, scan.svg.split("/").pop())));
 
   assert.equal(color.decision, "color");

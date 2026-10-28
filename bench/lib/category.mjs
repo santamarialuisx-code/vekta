@@ -30,6 +30,7 @@
 
 import {
   LINE_ART_RULES,
+  LINE_ART_SCALE,
   lineArtOptions,
   lineArtSignals,
   looksLikeLineArt,
@@ -176,8 +177,8 @@ export function classifyImage(signals) {
  * Preset efectivo de trazado para una categoría.
  *
  * En line art manda el preset binario del experimento 07 (`clustering: 'bw'` con el Otsu de la
- * imagen), no el preset de color del experimento 04 que guarda `CATEGORY_PRESETS`. En el resto,
- * el preset es el medido, tal cual.
+ * imagen) muestreado a `LINE_ART_SCALE` (experimento 12), no el preset de color del experimento 04
+ * que guarda `CATEGORY_PRESETS`. En el resto, el preset es el medido, tal cual.
  */
 export function tracePreset(category, signals) {
   if (category === "line-art") {
@@ -187,6 +188,8 @@ export function tracePreset(category, signals) {
       simplify: options.simplify,
       clustering: options.clustering,
       binaryThreshold: options.binaryThreshold,
+      // La escala con la que se muestrea la imagen; el color traza a 1×.
+      scale: LINE_ART_SCALE,
     };
   }
 
