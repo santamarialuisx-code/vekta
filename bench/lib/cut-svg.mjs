@@ -44,16 +44,23 @@ export function ringsToPathData(rings, { precision = 2 } = {}) {
 }
 
 /** Silueta: un único path con `evenodd` para que los agujeros resten. */
-export function cutSvg({ rings, fill = "#000000", precision = 2, bbox = ringsBbox(rings) }) {
+export function cutSvg({
+  rings,
+  fill = "#000000",
+  precision = 2,
+  bbox = ringsBbox(rings),
+  unit = null,
+}) {
   const d = ringsToPathData(rings, { precision });
   return document({
     bbox,
+    unit,
     body: `<path d="${d}" fill="${fill}" fill-rule="evenodd"/>`,
   });
 }
 
 /** Capas: un path por color, cada uno ya unificado. */
-export function layerSvg({ layers, bbox, precision = 2 }) {
+export function layerSvg({ layers, bbox, precision = 2, unit = null }) {
   const body = layers
     .map((layer) => {
       const d = ringsToPathData(layer.rings, { precision });
@@ -62,17 +69,19 @@ export function layerSvg({ layers, bbox, precision = 2 }) {
     })
     .filter(Boolean)
     .join("\n");
-  return document({ bbox: bbox ?? ringsBbox(layers.flatMap((layer) => layer.rings)), body });
+  return document({ bbox: bbox ?? ringsBbox(layers.flatMap((layer) => layer.rings)), body, unit });
 }
 
-function document({ bbox, body }) {
+function document({ bbox, body, unit }) {
   const x = trim(bbox.x);
   const y = trim(bbox.y);
   const width = trim(bbox.width);
   const height = trim(bbox.height);
+  // Con unidad física, 1 unidad del viewBox = 1 mm, así que el archivo mide lo que dice medir.
+  const suffix = unit ?? "";
   return [
     '<?xml version="1.0" encoding="UTF-8"?>',
-    `<svg version="1.1" xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="${x} ${y} ${width} ${height}">`,
+    `<svg version="1.1" xmlns="http://www.w3.org/2000/svg" width="${width}${suffix}" height="${height}${suffix}" viewBox="${x} ${y} ${width} ${height}">`,
     body,
     "</svg>",
     "",
