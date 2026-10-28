@@ -11,7 +11,7 @@ npm run bench          # barrido principal: 4 imágenes × 8 variantes
 npm run bench:sweep    # barrido fino de parámetros sobre Gum Tree
 npm run bench:merge    # añade el barrido a metrics.json
 npm run bench:serve    # servidor en http://127.0.0.1:8787/
-npm run bench:cut      # informe de doble corte y SVG cortable
+npm run bench:cut      # informe de doble corte y geometría cortable (SVG/DXF, mm, kerf)
 npm run bench:quantize # cuantización perceptiva en OKLab (antes de trazar)
 npm run bench:pipeline # cuantizar → trazar, contra el trazado directo
 npm run bench:sweep2   # barrido colores × simplify (calibración)
@@ -47,6 +47,9 @@ bench/
   lib/svg-shapes.mjs   formas rellenas con herencia de `fill` y `fill-rule`
   lib/union.mjs        unión booleana y medición del doble corte
   lib/cut-svg.mjs      emisión de SVG de silueta y de capas
+  lib/units.mjs        escala píxeles → milímetros
+  lib/kerf.mjs         compensación de ancho de corte (ClipperOffset)
+  lib/dxf.mjs          escritor DXF R2000 con unidades en mm
   lib/oklab.mjs        sRGB ↔ OKLab y ΔE
   lib/quantize.mjs     cuantización ponderada por área
   lib/image-io.mjs     decodificar JPG/PNG a RGBA y escribir PNG
@@ -120,6 +123,19 @@ mejor, y las nubes del Gum Tree vuelven. La paleta se le pasa explícita a vtrac
 agrupar de nuevo, deriva los colores y fragmenta el SVG.
 
 Ver [`../docs/experimento-03-cuantizacion.md`](../docs/experimento-03-cuantizacion.md).
+
+## Unidades, kerf y DXF
+
+```bash
+node bench/cut.mjs --width-mm 100 --kerf-mm 0.2 --format svg,dxf
+```
+
+Con `--width-mm` el SVG declara `width="100mm"` de verdad y las coordenadas pasan a mm. Con
+`--kerf-mm` la trayectoria se compensa al radio de la herramienta: exteriores hacia fuera, agujeros
+hacia dentro. `--format dxf` escribe DXF R2000 (`$INSUNITS = 4`) con una capa `CUT`, listo para
+LightBurn/Inkscape/LibreCAD. Sin `--width-mm` se mantiene el modo en píxeles de siempre.
+
+Ver [`../docs/experimento-06-dxf-kerf.md`](../docs/experimento-06-dxf-kerf.md).
 
 ## Salida cortable
 
