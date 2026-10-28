@@ -1,0 +1,46 @@
+# Integración continua del banco: cada push a main y cada pull request pasan las pruebas en las
+# dos versiones de Node que nos importan (20, aún la mínima soportada, y 22, la siguiente LTS).
+#
+# Solo acciones oficiales (`actions/*`): el repo no tiene dependencias de terceros en el CI, así
+# que no hay nada que inventar ni que auditar fuera de lo que mantiene GitHub.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Node ${{ matrix.node-version }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node-version: [20, 22]
+    steps:
+      - name: Clonar el repositorio
+        uses: actions/checkout@v4
+
+      - name: Instalar Node con caché de npm
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: npm
+
+      # `npm ci` respeta package-lock.json al milímetro: es lo que instala quien trabaja aquí, así
+      # que el CI no puede probar una resolución de dependencias distinta.
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Pruebas
+        run: npm test
+
+      # Humo del camino que se entrega (`bench/auto-trace.mjs`): cubre la carga del motor nativo,
+      # la lectura de una imagen real y la escritura del informe. Se limita a K1 y tarda menos de
+      # un segundo, así que cabe en las dos versiones de la matriz.
+      - name: Humo del trazado automático sobre K1
+        run: node bench/auto-trace.mjs --only K1 --out /tmp/auto --json /tmp/auto.json
