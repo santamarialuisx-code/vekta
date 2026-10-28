@@ -17,7 +17,8 @@
     "bench:geometry": "node bench/geometry-sweep.mjs",
     "bench:knobs": "node bench/knobs-sweep.mjs",
     "bench:bw": "node bench/bw-sweep.mjs",
-    "bench:auto": "node bench/auto-trace.mjs"
+    "bench:auto": "node bench/auto-trace.mjs",
+    "bench:subpixel": "node bench/subpixel-sweep.mjs"
   },
   "dependencies": {
     "@visioncortex/vtracer": "1.0.0-alpha.4",
