@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Vekta — trazar en el navegador</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --fondo: #14161a;
+        --panel: #1c1f26;
+        --borde: #2b303a;
+        --texto: #e6e6e6;
+        --tenue: #8b95a3;
+        --acento: #9fd0ff;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        padding: 24px;
+        background: var(--fondo);
+        color: var(--texto);
+        font: 14px/1.5 ui-monospace, "Cascadia Mono", "SF Mono", monospace;
+      }
+      header { max-width: 1100px; margin: 0 auto 18px; }
+      h1 { font-size: 18px; margin: 0 0 6px; letter-spacing: 0.01em; }
+      header p { margin: 0; color: var(--tenue); max-width: 78ch; }
+      main { max-width: 1100px; margin: 0 auto; display: grid; gap: 14px; }
+      .panel { background: var(--panel); border: 1px solid var(--borde); border-radius: 8px; padding: 14px; }
+      #zona {
+        display: grid;
+        place-items: center;
+        gap: 6px;
+        min-height: 130px;
+        border: 1px dashed #3a4150;
+        border-radius: 8px;
+        background: #191c22;
+        cursor: pointer;
+        text-align: center;
+      }
+      #zona.activa { border-color: var(--acento); background: #1d2430; }
+      #zona strong { color: var(--acento); font-weight: 600; }
+      #zona small { color: var(--tenue); }
+      #archivo { display: none; }
+      .controles { display: flex; flex-wrap: wrap; gap: 14px; align-items: end; }
+      label { display: grid; gap: 4px; font-size: 12px; color: var(--tenue); }
+      select, input[type="number"] {
+        font: inherit;
+        color: var(--texto);
+        background: #12141a;
+        border: 1px solid var(--borde);
+        border-radius: 6px;
+        padding: 6px 8px;
+        min-width: 9ch;
+      }
+      button {
+        font: inherit;
+        color: #0d1117;
+        background: var(--acento);
+        border: 0;
+        border-radius: 6px;
+        padding: 7px 12px;
+        cursor: pointer;
+      }
+      button:disabled { background: #333a46; color: #7d8794; cursor: not-allowed; }
+      button.secundario { background: #2b303a; color: var(--texto); }
+      #estado, #error { font-size: 12px; }
+      #estado { color: var(--tenue); }
+      #error { color: #ffb4b4; white-space: pre-wrap; }
+      #vista-caja {
+        display: grid;
+        place-items: center;
+        min-height: 260px;
+        /* Papel, no pantalla: el binario emite tinta negra sobre fondo transparente y en un panel
+           oscuro no se vería nada. */
+        background: #f6f6f4;
+        border: 1px solid var(--borde);
+        border-radius: 8px;
+        padding: 10px;
+        overflow: hidden;
+      }
+      #vista { max-width: 100%; height: auto; image-rendering: auto; }
+      #vista[hidden], #vacio[hidden] { display: none; }
+      #vacio { color: #6b7280; font-size: 12px; }
+      dl#medidas { display: flex; flex-wrap: wrap; gap: 10px 26px; margin: 0 0 8px; }
+      dl#medidas > div { display: grid; gap: 1px; }
+      dl#medidas dt { font-size: 11px; color: var(--tenue); letter-spacing: 0.04em; text-transform: uppercase; }
+      dl#medidas dd { margin: 0; font-size: 16px; }
+      #decision { margin: 0; color: var(--tenue); font-size: 12px; }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>Vekta — trazar en el navegador</h1>
+      <p>
+        La imagen no sale de aquí: se lee con <code>createImageBitmap</code>, se mide en JS, se
+        vectoriza con el wasm de vtracer y se descarga desde memoria. Sin subidas y sin servidor de
+        aplicación; el servidor estático solo reparte ficheros.
+      </p>
+    </header>
+
+    <main>
+      <section class="panel">
+        <div id="zona" role="button" tabindex="0" aria-label="Elegir o arrastrar una imagen">
+          <strong>Arrastra una imagen</strong>
+          <small>o haz clic para elegir un fichero · PNG, JPEG, GIF o BMP</small>
+          <input id="archivo" type="file" accept="image/*" />
+        </div>
+      </section>
+
+      <section class="panel controles">
+        <label>
+          modo
+          <select id="modo">
+            <option value="auto" selected>auto (decide la imagen)</option>
+            <option value="binario">binario (Otsu)</option>
+            <option value="paleta">paleta explícita</option>
+          </select>
+        </label>
+        <label>
+          colores
+          <input id="colores" type="number" min="2" max="64" step="1" value="16" />
+        </label>
+        <label>
+          ancho de corte (mm)
+          <input id="ancho" type="number" min="1" max="2000" step="1" value="200" />
+        </label>
+        <button id="descargar-svg" disabled>Descargar SVG</button>
+        <button id="descargar-mm" class="secundario" disabled>Descargar en mm</button>
+        <span id="estado">sin imagen</span>
+      </section>
+
+      <p id="error" role="alert"></p>
+
+      <section class="panel">
+        <dl id="medidas"></dl>
+        <p id="decision"></p>
+      </section>
+
+      <section class="panel">
+        <div id="vista-caja">
+          <img id="vista" alt="Vista previa del SVG trazado" hidden />
+          <span id="vacio">aquí aparece el SVG trazado</span>
+        </div>
+      </section>
+    </main>
+
+    <script type="module" src="./app.mjs"></script>
+  </body>
+</html>
