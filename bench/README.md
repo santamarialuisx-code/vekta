@@ -11,6 +11,7 @@ npm run bench          # barrido principal: 4 imágenes × 8 variantes
 npm run bench:sweep    # barrido fino de parámetros sobre Gum Tree
 npm run bench:merge    # añade el barrido a metrics.json
 npm run bench:serve    # servidor en http://127.0.0.1:8787/
+npm run bench:cut      # informe de doble corte y SVG cortable
 npm test               # pruebas de geometría de corte
 ```
 
@@ -42,6 +43,8 @@ bench/
   lib/path-to-polyline.mjs  `d` → polilíneas con aplanado adaptativo de Bézier
   lib/svg-shapes.mjs   formas rellenas con herencia de `fill` y `fill-rule`
   lib/union.mjs        unión booleana y medición del doble corte
+  lib/cut-svg.mjs      emisión de SVG de silueta y de capas
+  cut.mjs              CLI: informe + SVG cortable (`npm run bench:cut`)
   test/                pruebas de la geometría de corte (`node --test`)
   run.mjs  sweep.mjs  merge-metrics.mjs  serve.mjs
   compare.html  metrics.html  vmdiff.html
@@ -71,6 +74,17 @@ máquina lo recorre dos veces. Vector Magic lo reconoce por escrito en su págin
 En una teselación perfecta `singlePassRedundancy → 2`,0: la mitad de los bordes se cortan dos
 veces. El kernel es Clipper (`clipper-lib`): los ports JS del algoritmo de Martinez fallan con
 los bordes casi coincidentes de un trazador real.
+
+## Salida cortable
+
+`npm run bench:cut` mide las cuatro longitudes y emite dos SVG por entrada en `out/cut/`:
+
+- `<nombre>--layers.svg`: un path por color, ya unificado. Es la salida para vinilo y DTF.
+- `<nombre>--silhouette.svg`: un único path con la unión de todo. Es la pieza recortada.
+
+El informe queda en `out/cut-report.json` e incluye el perímetro de **lo emitido**, releído del
+archivo, para que la cifra no sea una promesa. Ver
+[`../docs/experimento-02-salida-cortable.md`](../docs/experimento-02-salida-cortable.md).
 
 ## Resultado
 
