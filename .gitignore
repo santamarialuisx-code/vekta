@@ -7,6 +7,8 @@ bench/out/quantized/
 bench/out/quantize-report.json
 bench/out/pipeline/
 bench/out/pipeline-report.json
+bench/out/pipeline-sweep*/
+bench/out/pipeline-sweep*.json
 bench/out/pipeline-ssim.json
 bench/out/metrics.json
 bench/out/sweep.json
