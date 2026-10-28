@@ -14,6 +14,7 @@ npm run bench:serve    # servidor en http://127.0.0.1:8787/
 npm run bench:cut      # informe de doble corte y SVG cortable
 npm run bench:quantize # cuantización perceptiva en OKLab (antes de trazar)
 npm run bench:pipeline # cuantizar → trazar, contra el trazado directo
+npm run bench:sweep2   # barrido colores × simplify (calibración)
 npm test               # pruebas de geometría de corte
 ```
 
@@ -51,6 +52,7 @@ bench/
   lib/image-io.mjs     decodificar JPG/PNG a RGBA y escribir PNG
   quantize.mjs         CLI: paleta de N colores + informe de ΔE
   pipeline.mjs         CLI: cuantizar → trazar y comparar con el trazado directo
+  pipeline-sweep.mjs   CLI: barrido maxColors × simplify
   cut.mjs              CLI: informe + SVG cortable (`npm run bench:cut`)
   test/                pruebas de la geometría de corte (`node --test`)
   run.mjs  sweep.mjs  merge-metrics.mjs  serve.mjs
@@ -94,6 +96,21 @@ nubes (65 436 px casi blancos) quedan **98,5 % intactas**; con 8 colores se las 
 ```
 
 El informe queda en `out/quantize-report.json` y los PNG en `out/quantized/`.
+
+## Calibración
+
+`npm run bench:sweep2` barre `maxColors` × `simplify` sobre las 4 imágenes y mide SSIM en el
+navegador. Regla de selección: el mayor `simplify` cuya caída de SSIM no pase de 0,005 respecto de
+`simplify 0`, con la misma paleta. Resultado:
+
+| Categoría | Paleta | `simplify` | Δ nodos |
+|---|---:|---:|---:|
+| Ilustración | 12 | 0,6 | −52 % |
+| Poster | 16 | 0,8 | −53 % |
+| Fotografía | 12 | 0,8 | −33 % |
+| Line art | 16 | 1,2 | −27 % |
+
+Ver [`../docs/experimento-04-calibracion.md`](../docs/experimento-04-calibracion.md).
 
 ## Pipeline
 
