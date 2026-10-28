@@ -23,6 +23,7 @@ npm run bench:classify # categoría, señales y preset por imagen, sin trazar
 npm run bench:alpha    # silueta desde el alfa de un PNG (fixture: dona 400×400)
 npm run bench:stroke   # línea central para grabado y plotter (esqueleto + RDP)
 npm run bench:subpixel # muestreo subpíxel: barrido escala × simplify (1× y 3×)
+npm run bench:fidelity # color: curvas contra fidelidad de píxel, con la vara de Vector Magic
 npm test               # pruebas de geometría de corte, clasificación, alfa y línea central
 ```
 
@@ -293,6 +294,30 @@ La escala y el `simplify` ya están cableados en `lib/lineart.mjs` (`LINE_ART_SC
 del motor: no viaja dentro de las opciones de `vtracer`.
 
 Ver [`../docs/experimento-12-subpixel.md`](../docs/experimento-12-subpixel.md).
+
+## Fidelidad en color
+
+`npm run bench:fidelity` traza las tres imágenes de color con los dos modos de entrega y deja los SVG
+para medir SSIM y PSNR en `bw.html` contra el original. La pregunta es la del experimento 14: ¿el
+hueco de 0,046 en ilustración era muestreo o paleta? Ni una ni otra: era el ajuste de curvas.
+
+| Imagen | Modo | Nodos | Tamaño | SSIM | Vector Magic |
+|---|---|---:|---:|---:|---:|
+| Gum Tree (ilustración) | `curvas` | 7 083 | 181 KB | 0,9351 | 0,9808 |
+| Gum Tree (ilustración) | **`fidelidad`** | 64 036 | 167 KB | **0,9776** | 0,9808 |
+| Cityscape (póster) | `curvas` | 8 055 | 171 KB | 0,9518 | 0,9672 |
+| Cityscape (póster) | **`fidelidad`** | 21 614 | 63 KB | **0,9631** | 0,9672 |
+| Ángel (foto) | `curvas` | 43 214 | 856 KB | 0,6693 | 0,8267 |
+| Ángel (foto) | **`fidelidad`** (24 col) | 367 032 | 1 153 KB | **0,8365** | 0,8267 |
+
+`fidelidad` es `mode: pixel`: sigue la frontera del raster en vez de ajustar Béziers. Alcanza al
+competidor en las tres categorías y lo supera en foto, al precio de bordes escalonados y muchos más
+segmentos. `curvas` sigue siendo el preset por defecto: es la salida para cortar y escalar.
+
+Los modos viven en `lib/color-presets.mjs` (`colorTraceOptions`, `FIDELITY_COLORS`); `auto-trace.mjs
+--fidelity` y la demo del navegador los usan. Los barridos que descartaron las otras palancas
+—subpíxel en color, profundidad de paleta, `watershed`, `polygon`— están en
+[`../docs/experimento-14-fidelidad-color.md`](../docs/experimento-14-fidelidad-color.md).
 
 ## Paridad en foto y póster
 

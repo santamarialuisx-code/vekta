@@ -129,6 +129,53 @@ export function renderQuantized(rgba, width, height, result) {
 
 const TRANSPARENT = 255;
 
+/**
+ * Asigna cada píxel al color más cercano de una paleta ya decidida, en OKLab.
+ *
+ * Es lo que permite separar las dos decisiones del color: **qué colores** (la paleta, decidida una vez
+ * sobre la imagen original) y **dónde cambia uno por otro** (la asignación, que se puede hacer sobre
+ * una imagen ampliada y así poner el borde entre píxeles). El cálculo se hace una vez por color
+ * distinto, no una vez por píxel: la imagen ampliada tiene decenas de miles de colores, no millones.
+ *
+ * @param {Uint8Array|Uint8ClampedArray} rgba
+ * @param {number[][]} palette colores `[r, g, b]` de 8 bits
+ * @returns {Uint8Array} un índice por píxel; `TRANSPARENT` donde no hay nada visible
+ */
+export function nearestPalette(rgba, palette, alphaThreshold = 8) {
+  if (!Array.isArray(palette) || palette.length === 0) {
+    throw new Error("hace falta una paleta con al menos un color");
+  }
+
+  const labs = palette.map(([r, g, b]) => rgbToOklab(r, g, b));
+  const pixels = Math.floor(rgba.length / 4);
+  const indices = new Uint8Array(pixels).fill(TRANSPARENT);
+  const cache = new Map();
+
+  for (let p = 0; p < pixels; p++) {
+    const i = p * 4;
+    if (rgba[i + 3] < alphaThreshold) continue;
+
+    const key = (rgba[i] << 16) | (rgba[i + 1] << 8) | rgba[i + 2];
+    let best = cache.get(key);
+    if (best === undefined) {
+      const lab = rgbToOklab(rgba[i], rgba[i + 1], rgba[i + 2]);
+      best = 0;
+      let bestDistance = Infinity;
+      for (let k = 0; k < labs.length; k++) {
+        const distance = squaredDistance(lab, labs[k]);
+        if (distance < bestDistance) {
+          bestDistance = distance;
+          best = k;
+        }
+      }
+      cache.set(key, best);
+    }
+    indices[p] = best;
+  }
+
+  return indices;
+}
+
 /** Histograma de colores visibles con su conteo y su Lab: el peso es el área. */
 function buildHistogram(rgba, pixels, alphaThreshold) {
   const histogram = new Map();

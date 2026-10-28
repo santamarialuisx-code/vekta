@@ -30,8 +30,10 @@ arrancar).
    → binario con el Otsu de la propia imagen (`lineArtOptions`), trazado a 3× (`LINE_ART_SCALE`) y
    devuelto a la rejilla original, así que el motor ve un borde suave y no un escalón de píxel.
    Color → cuantizar en OKLab (`bench/lib/quantize.mjs`) y trazar con la paleta explícita a 1×. El
-   selector permite forzar cualquiera de los dos caminos para comparar; el modo por defecto es el que
-   deciden los números.
+   selector permite forzar cualquiera de los caminos para comparar; el modo por defecto es el que
+   deciden los números. `fidelidad` usa el modo píxel del experimento 14 (sigue la frontera del
+   raster en vez de ajustar curvas): en Gum Tree da 64 036 nodos, 167 KB y SSIM 0,9776 frente a
+   0,9351 de las curvas, que es el 0,9808 de Vector Magic.
 3. Muestra nodos, rellenos, subpaths, tamaño, milisegundos, tamaño del lienzo y el motivo de la
    decisión (neutros, tinta, Otsu, separabilidad, aristas).
 4. Descarga el SVG y una copia con unidades físicas. El motor emite `width`/`height` en píxeles y

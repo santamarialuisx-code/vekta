@@ -127,6 +127,59 @@ export function upsampleLuminance(gray, width, height, scale) {
   return { width: outWidth, height: outHeight, gray: out };
 }
 
+/**
+ * Amplía una imagen RGBA por un factor entero con interpolación bilineal.
+ *
+ * Mismo mapeo por centros de píxel que la luminancia (y por eso las dos ampliaciones coinciden en
+ * las imágenes grises), pero canal a canal, alfa incluido: el color no puede perder la transparencia.
+ */
+export function upsampleRgba(rgba, width, height, scale) {
+  if (!Number.isInteger(scale) || scale < 1) {
+    throw new Error(`la escala debe ser un entero ≥ 1, recibió ${scale}`);
+  }
+  if (!width || !height || rgba.length < width * height * 4) {
+    throw new Error("el buffer no tiene width × height × 4 bytes");
+  }
+
+  const outWidth = width * scale;
+  const outHeight = height * scale;
+  const out = new Uint8Array(outWidth * outHeight * 4);
+
+  const at = (x, y) => (y * width + x) * 4;
+  const clampX = (v) => Math.min(width - 1, Math.max(0, v));
+  const clampY = (v) => Math.min(height - 1, Math.max(0, v));
+
+  for (let y = 0; y < outHeight; y++) {
+    const sourceY = clampY((y + 0.5) / scale - 0.5);
+    const y0 = Math.floor(sourceY);
+    const y1 = clampY(y0 + 1);
+    const fy = sourceY - y0;
+    const row0 = at(0, y0);
+    const row1 = at(0, y1);
+
+    for (let x = 0; x < outWidth; x++) {
+      const sourceX = clampX((x + 0.5) / scale - 0.5);
+      const x0 = Math.floor(sourceX);
+      const x1 = clampX(x0 + 1);
+      const fx = sourceX - x0;
+
+      const i0 = row0 + x0 * 4;
+      const i1 = row0 + x1 * 4;
+      const i2 = row1 + x0 * 4;
+      const i3 = row1 + x1 * 4;
+      const o = (y * outWidth + x) * 4;
+
+      for (let c = 0; c < 4; c++) {
+        const top = rgba[i0 + c] * (1 - fx) + rgba[i1 + c] * fx;
+        const bottom = rgba[i2 + c] * (1 - fx) + rgba[i3 + c] * fx;
+        out[o + c] = Math.round(top * (1 - fy) + bottom * fy);
+      }
+    }
+  }
+
+  return { width: outWidth, height: outHeight, rgba: out };
+}
+
 /** Luminancia → RGBA gris opaco, que es lo que come el motor. */
 function toGrayRgba(gray) {
   const rgba = new Uint8Array(gray.length * 4);

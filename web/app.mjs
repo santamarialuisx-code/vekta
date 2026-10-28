@@ -10,14 +10,15 @@
 // guardado entre visitas. El servidor estático solo reparte ficheros: si el navegador pudiera leer
 // píxeles de `file://` sin taint de CORS, ni siquiera haría falta.
 
+import { colorTraceOptions } from "../bench/lib/color-presets.mjs";
 import { LINE_ART_SCALE, lineArtOptions, lineArtSignals, looksLikeLineArt } from "../bench/lib/lineart.mjs";
 import { quantize, renderQuantized } from "../bench/lib/quantize.mjs";
 import { subpixelFrame, rescaleSvg } from "../bench/lib/subpixel-transform.mjs";
 import { svgMetrics } from "../bench/lib/svg-metrics.mjs";
 import { loadVtracer } from "./vtracer-web.mjs";
 
-/** Preset de color del banco: el de póster/foto del experimento 08. */
-const COLOR_PRESET = { mode: "spline", hierarchical: "cutout", optimize: 2, simplify: 0.8 };
+/** `simplify` del camino de color con curvas: el del preset de póster/foto del experimento 08. */
+const COLOR_SIMPLIFY = 0.8;
 
 const ui = {
   zona: document.querySelector("#zona"),
@@ -72,7 +73,7 @@ ui.modo.addEventListener("change", () => {
   if (state.rgba) run(trace);
 });
 ui.colores.addEventListener("change", () => {
-  if (state.rgba && resolvedMode() === "paleta") run(trace);
+  if (state.rgba && resolvedMode() !== "binario") run(trace);
 });
 
 // --- imagen ----------------------------------------------------------------
@@ -126,10 +127,20 @@ async function trace() {
     svg = rescaleSvg(traced, state.width, state.height, 1 / LINE_ART_SCALE);
   } else {
     // Paleta explícita: cuantizar en OKLab, repintar con esos colores y trazar con la lista fija.
+    // «fidelidad» es el modo píxel del experimento 14: sigue la frontera del raster en vez de ajustar
+    // curvas, y es el que se mide al nivel del competidor en ilustración, póster y foto.
     const maxColors = clampColors(ui.colores.value);
     const palette = quantize(state.rgba, state.width, state.height, { maxColors });
     const rendered = renderQuantized(state.rgba, state.width, state.height, palette);
-    svg = vectorizeRgba(rendered, state.width, state.height, { ...COLOR_PRESET, palette: palette.paletteHex });
+    svg = vectorizeRgba(
+      rendered,
+      state.width,
+      state.height,
+      colorTraceOptions(palette.paletteHex, {
+        mode: puesto === "fidelidad" ? "fidelidad" : "curvas",
+        simplify: COLOR_SIMPLIFY,
+      }),
+    );
   }
   state.ms = Math.round(performance.now() - started);
 

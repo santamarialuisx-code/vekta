@@ -16,6 +16,7 @@ import { fileURLToPath } from "node:url";
 import vtracer from "@visioncortex/vtracer";
 
 import { classifyImage, imageSignals, tracePreset } from "./lib/category.mjs";
+import { FIDELITY_COLORS, colorTraceOptions } from "./lib/color-presets.mjs";
 import { decodeImage } from "./lib/image-io.mjs";
 import { quantize, renderQuantized } from "./lib/quantize.mjs";
 import { subpixelOptions } from "./lib/subpixel.mjs";
@@ -33,7 +34,9 @@ const inputs = options.inputs
       .filter((file) => /\.(png|jpe?g|gif|bmp)$/i.test(file))
       .sort()
       .map((file) => ({ file, category: "lote", source: path.join(options.inputs, file) }))
-  : INPUTS.filter((input) => !options.only || input.file.includes(options.only));
+  : INPUTS.filter(
+      (input) => !options.only || slug(input.file).includes(options.only) || input.file.includes(options.only),
+    );
 
 if (inputs.length === 0) {
   console.error(options.inputs ? `no hay imágenes en ${options.inputs}` : `ninguna imagen coincide con ${options.only}`);
@@ -54,6 +57,8 @@ for (const input of inputs) {
   const simplify = options.simplify === null ? preset.simplify : options.simplify;
   // La escala de muestreo es del preset: el color traza a 1× y el line art, a la del experimento 12.
   const subpixelScale = preset.scale ?? 1;
+  // `--fidelity` cambia el modo de entrega del color (experimento 14); el line art no lo mira.
+  const colorMode = options.fidelity ? "fidelidad" : "curvas";
 
   let svg;
   let paletteSize = 0;
@@ -66,17 +71,18 @@ for (const input of inputs) {
       svg = subpixelOptions(signals, { scale: subpixelScale, simplify });
     } else {
       // Paleta y `simplify` salen de la categoría; `--colors` y `--simplify` los sobrescriben.
-      const maxColors = options.colors === null ? preset.colors : options.colors;
+      // En foto el modo fidelidad necesita más ranuras: el detalle tonal es el tema de la imagen.
+      const presetColors = options.fidelity ? (FIDELITY_COLORS[category] ?? preset.colors) : preset.colors;
+      const maxColors = options.colors === null ? presetColors : options.colors;
       const palette = quantize(image.rgba, image.width, image.height, { maxColors });
       const rendered = renderQuantized(image.rgba, image.width, image.height, palette);
       paletteSize = palette.palette.length;
-      svg = vtracer.convertPixels(new Uint8Array(rendered), image.width, image.height, {
-        mode: "spline",
-        hierarchical: "cutout",
-        optimize: 2,
-        simplify,
-        palette: palette.paletteHex,
-      });
+      svg = vtracer.convertPixels(
+        new Uint8Array(rendered),
+        image.width,
+        image.height,
+        colorTraceOptions(palette.paletteHex, { mode: colorMode, simplify }),
+      );
     }
   } catch (error) {
     console.error(`ERROR ${imgSlug}: ${error.message}`);
@@ -98,6 +104,7 @@ for (const input of inputs) {
     decision: category === "line-art" ? "line-art" : "color",
     reason: verdict.reason,
     preset: { ...preset, simplify },
+    mode: category === "line-art" ? "binario" : colorMode,
     subpixelScale,
     threshold: signals.threshold,
     separability: round(signals.separability, 4),
@@ -116,7 +123,7 @@ for (const input of inputs) {
   });
 
   console.log(
-    `${imgSlug.padEnd(34)} ${category.padEnd(12)} ${presetLabel(preset, simplify).padEnd(14)} ` +
+    `${imgSlug.padEnd(34)} ${category.padEnd(12)} ${presetLabel(preset, simplify, colorMode).padEnd(24)} ` +
       `nodos=${String(metrics.nodes).padStart(6)}  rellenos=${String(metrics.colors).padStart(2)}  ` +
       `${String(Math.round(metrics.bytes / 1024)).padStart(5)}KB  ${String(ms).padStart(5)}ms  ${verdict.reason}`,
   );
@@ -126,12 +133,13 @@ fs.writeFileSync(options.json, `${JSON.stringify(report, null, 2)}\n`);
 console.log(`\n${report.length} SVGs en ${path.relative(process.cwd(), options.output)}`);
 console.log(`informe → ${path.relative(process.cwd(), options.json)}`);
 
-function presetLabel(preset, simplify) {
+function presetLabel(preset, simplify, colorMode = "curvas") {
   if (preset.clustering === "bw") {
     const scale = preset.scale > 1 ? ` @${preset.scale}×` : "";
     return `bw / ${decimal(simplify)}${scale}`;
   }
-  return `${preset.colors} col / ${decimal(simplify)}`;
+  const fidelity = colorMode === "fidelidad" ? " · fidelidad" : "";
+  return `${preset.colors} col / ${decimal(simplify)}${fidelity}`;
 }
 
 function decimal(value) {
@@ -152,6 +160,7 @@ function parseArgs(args) {
     json: path.join("bench", "out", "auto-report.json"),
     only: null,
     inputs: null,
+    fidelity: false,
   };
 
   for (let i = 0; i < args.length; i++) {
@@ -173,6 +182,9 @@ function parseArgs(args) {
         break;
       case "--inputs":
         parsed.inputs = args[++i];
+        break;
+      case "--fidelity":
+        parsed.fidelity = true;
         break;
       case "--help":
         console.log(
