@@ -17,6 +17,8 @@ npm run bench:pipeline # cuantizar → trazar, contra el trazado directo
 npm run bench:sweep2   # barrido colores × simplify (calibración)
 npm run bench:geometry # barrido de esquinas, splicing y longitud
 npm run bench:knobs    # barrido de pathPrecision, filterSpeckle y layerDifference
+npm run bench:bw       # barrido del modo binario (umbral fijo y adaptativo) para line art
+npm run bench:auto     # decide por imagen (line art o color) y traza con el preset que toca
 npm test               # pruebas de geometría de corte
 ```
 
@@ -30,6 +32,7 @@ El servidor es necesario porque el cálculo de SSIM/PSNR lee píxeles de `<canva
 | `/compare.html?a=…&b=…` | Comparador lado a lado: vista completa + recorte ampliado |
 | `/metrics.html` | SSIM/PSNR de cada SVG contra la imagen original |
 | `/vmdiff.html` | SSIM/PSNR contra la salida real de Vector Magic |
+| `/bw.html` | Modo binario: SSIM contra el original y F1 de la máscara de tinta |
 
 `a` y `b` aceptan `orig`, `vm` o una ruta relativa a `bench/out/`
 (p. ej. `sweep/stacked_cp6_ld16_sp4.svg`).
@@ -52,6 +55,7 @@ bench/
   lib/units.mjs        escala píxeles → milímetros
   lib/kerf.mjs         compensación de ancho de corte (ClipperOffset)
   lib/dxf.mjs          escritor DXF R2000 con unidades en mm
+  lib/lineart.mjs      señales de imagen, umbral de Otsu y preset de line art
   lib/oklab.mjs        sRGB ↔ OKLab y ΔE
   lib/quantize.mjs     cuantización ponderada por área
   lib/image-io.mjs     decodificar JPG/PNG a RGBA y escribir PNG
@@ -60,6 +64,8 @@ bench/
   pipeline-sweep.mjs   CLI: barrido maxColors × simplify
   geometry-sweep.mjs   CLI: barrido cornerThreshold × spliceThreshold × lengthThreshold
   knobs-sweep.mjs      CLI: barrido pathPrecision × filterSpeckle × layerDifference
+  bw-sweep.mjs         CLI: barrido del modo binario (umbral fijo, Bradley–Roth, simplify)
+  auto-trace.mjs       CLI: decisión line art / color y trazado con el preset
   cut.mjs              CLI: informe + SVG cortable (`npm run bench:cut`)
   test/                pruebas de la geometría de corte (`node --test`)
   run.mjs  sweep.mjs  merge-metrics.mjs  serve.mjs
@@ -127,6 +133,27 @@ de +3 % de nodos en ilustración y queda como opción, no como default. `filterS
 con **19× nodos**, que ya no es vectorizar. El hueco de 0,032 frente a Vector Magic es de motor.
 
 Ver [`../docs/experimento-05-geometria.md`](../docs/experimento-05-geometria.md).
+
+## Line art y modo binario
+
+`npm run bench:bw` barre el modo binario del motor, que hasta el experimento 07 estaba sin tocar.
+Sobre el escaneo K1 el preset (`clustering: 'bw'`, umbral de Otsu de la imagen, `simplify` 0,8) pasa de
+**174 451 nodos y 28 rellenos** a **17 749 nodos y 1 relleno**, con **+0,032 de F1 de tinta** y 20×
+menos tiempo. El adaptativo de Bradley–Roth pierde 0,019 de F1: con el fondo uniforme de un escaneo,
+la media local ensucia el corte.
+
+`bench/bw.html` mide con dos varas: SSIM contra el original (comparable con el resto de experimentos)
+y **F1 de la máscara de tinta** al umbral de Otsu (la que describe un grabado). En una imagen de color
+el F1 no avisa —Gum Tree da 0,9965 con el SSIM en 0,41—, así que la decisión la toma `lib/lineart.mjs`
+con dos condiciones sobre la imagen: **≥ 90 % de píxeles neutros** y **≤ 40 % de tinta**.
+
+```bash
+npm run bench:auto
+# gum-tree-vector    color     nodos= 6083  rellenos=15  ...  color: 24 % de píxeles neutros, mínimo 90 %
+# k1-drawing         line-art  nodos=17749  rellenos= 1  ...  neutro (100 %) con 13 % de tinta
+```
+
+Ver [`../docs/experimento-07-bw-adaptativo.md`](../docs/experimento-07-bw-adaptativo.md).
 
 ## Pipeline
 

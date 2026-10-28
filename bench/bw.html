@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <title>Modo binario — SSIM y F1 de tinta</title>
+    <style>
+      body { font: 14px/1.5 ui-monospace, monospace; background: #111; color: #ddd; padding: 24px; }
+      h1 { font-size: 16px; }
+      #log { white-space: pre-wrap; }
+    </style>
+  </head>
+  <body>
+    <h1 id="estado">Calculando SSIM y F1 de tinta…</h1>
+    <div id="log"></div>
+    <script type="module">
+// Página de medición del modo binario: SSIM contra el original y F1 de la máscara de tinta.
+//
+//   npm run bench:serve      → http://127.0.0.1:8787/bw.html
+//
+// Dos varas, porque con una sola se miente:
+//
+// - SSIM contra el original. Es la misma vara que los experimentos 01–05, así que permite comparar.
+//   Castiga al modo binario por descartar el tono del papel y el gris del lápiz… que es exactamente
+//   lo que un escaneo tiene que descartar. Sirve para poner el número en la tabla, no para decidir.
+// - F1 de la máscara de tinta. Píxel oscuro del render contra píxel oscuro del original, los dos con
+//   el umbral de Otsu que calculó `bw-sweep.mjs`. Mide si el trazo está donde debe: eso es lo que se
+//   graba o se corta. Es la vara que decide.
+
+const JSON_PATH = new URLSearchParams(location.search).get("json") || "out/bw-sweep.json";
+
+const log = (text) => (document.getElementById("log").textContent += text + "\n");
+
+function loadImage(src) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = () => reject(new Error("no cargó " + src));
+    img.src = src;
+  });
+}
+
+function gray(data, w, h) {
+  const g = new Float32Array(w * h);
+  for (let i = 0, p = 0; i < data.length; i += 4, p++) {
+    g[p] = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
+  }
+  return g;
+}
+
+function psnr(a, b) {
+  let se = 0;
+  for (let i = 0; i < a.length; i++) {
+    const d = a[i] - b[i];
+    se += d * d;
+  }
+  const mse = se / a.length;
+  return mse === 0 ? 99 : 10 * Math.log10((255 * 255) / mse);
+}
+
+// SSIM sobre ventanas 8×8 con stride 8: la misma implementación que metrics.html, para que los
+// números de este experimento y los de los anteriores sean comparables.
+function ssim(a, b, w, h) {
+  const C1 = (0.01 * 255) ** 2;
+  const C2 = (0.03 * 255) ** 2;
+  const B = 8;
+  let total = 0;
+  let n = 0;
+  for (let y = 0; y + B <= h; y += B) {
+    for (let x = 0; x + B <= w; x += B) {
+      let sa = 0;
+      let sb = 0;
+      for (let j = 0; j < B; j++) {
+        for (let i = 0; i < B; i++) {
+          const p = (y + j) * w + (x + i);
+          sa += a[p];
+          sb += b[p];
+        }
+      }
+      const N = B * B;
+      const ma = sa / N;
+      const mb = sb / N;
+      let va = 0;
+      let vb = 0;
+      let cov = 0;
+      for (let j = 0; j < B; j++) {
+        for (let i = 0; i < B; i++) {
+          const p = (y + j) * w + (x + i);
+          const da = a[p] - ma;
+          const db = b[p] - mb;
+          va += da * da;
+          vb += db * db;
+          cov += da * db;
+        }
+      }
+      va /= N;
+      vb /= N;
+      cov /= N;
+      total +=
+        ((2 * ma * mb + C1) * (2 * cov + C2)) / ((ma * ma + mb * mb + C1) * (va + vb + C2));
+      n++;
+    }
+  }
+  return n ? total / n : 0;
+}
+
+// Máscara de tinta a un umbral: píxel oscuro. F1 = 2PR/(P+R).
+function inkScore(a, b, threshold) {
+  let tp = 0;
+  let fp = 0;
+  let fn = 0;
+  for (let i = 0; i < a.length; i++) {
+    const inkA = a[i] <= threshold;
+    const inkB = b[i] <= threshold;
+    if (inkA && inkB) tp++;
+    else if (!inkA && inkB) fp++;
+    else if (inkA && !inkB) fn++;
+  }
+  const precision = tp + fp > 0 ? tp / (tp + fp) : 0;
+  const recall = tp + fn > 0 ? tp / (tp + fn) : 0;
+  const f1 = precision + recall > 0 ? (2 * precision * recall) / (precision + recall) : 0;
+  return {
+    f1: +f1.toFixed(4),
+    precision: +precision.toFixed(4),
+    recall: +recall.toFixed(4),
+    inkA: tp + fn,
+    inkB: tp + fp,
+  };
+}
+
+const rows = await fetch(JSON_PATH).then((r) => r.json());
+const originals = new Map();
+
+async function original(image) {
+  if (!originals.has(image)) {
+    const img = await loadImage("inputs/" + encodeURIComponent(image));
+    const canvas = document.createElement("canvas");
+    canvas.width = img.naturalWidth;
+    canvas.height = img.naturalHeight;
+    const ctx = canvas.getContext("2d", { willReadFrequently: true });
+    ctx.drawImage(img, 0, 0);
+    originals.set(image, {
+      w: canvas.width,
+      h: canvas.height,
+      gray: gray(ctx.getImageData(0, 0, canvas.width, canvas.height).data, canvas.width, canvas.height),
+    });
+  }
+  return originals.get(image);
+}
+
+const out = [];
+for (const row of rows) {
+  try {
+    const ref = await original(row.image);
+    const img = await loadImage("out/" + row.svg);
+    const canvas = document.createElement("canvas");
+    canvas.width = ref.w;
+    canvas.height = ref.h;
+    const ctx = canvas.getContext("2d", { willReadFrequently: true });
+    ctx.fillStyle = "#fff";
+    ctx.fillRect(0, 0, ref.w, ref.h);
+    ctx.drawImage(img, 0, 0, ref.w, ref.h);
+    const candidate = gray(ctx.getImageData(0, 0, ref.w, ref.h).data, ref.w, ref.h);
+
+    const ink = inkScore(ref.gray, candidate, row.threshold);
+    const entry = {
+      imgSlug: row.imgSlug,
+      config: row.config,
+      kind: row.kind,
+      lineArt: row.lineArt,
+      nodes: row.nodes,
+      fills: row.fills,
+      bytes: row.bytes,
+      ms: row.ms,
+      ssim: +ssim(ref.gray, candidate, ref.w, ref.h).toFixed(4),
+      psnr: +psnr(ref.gray, candidate).toFixed(2),
+      ...ink,
+    };
+    out.push(entry);
+    log(
+      `${row.imgSlug} ${row.config}  SSIM=${entry.ssim}  F1=${entry.f1}  ` +
+        `P=${entry.precision}  R=${entry.recall}  nodos=${row.nodes}`,
+    );
+  } catch (error) {
+    log(`FAIL ${row.imgSlug} ${row.config} ${error.message}`);
+  }
+}
+
+window.__RESULTS__ = out;
+document.getElementById("estado").textContent = `LISTO ${out.length}/${rows.length}`;
+    </script>
+  </body>
+</html>

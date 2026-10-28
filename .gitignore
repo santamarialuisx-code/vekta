@@ -16,6 +16,10 @@ bench/out/geometry-sweep*/
 bench/out/geometry-sweep*.json
 bench/out/knobs-sweep*/
 bench/out/knobs-sweep*.json
+bench/out/bw-sweep*/
+bench/out/bw-sweep*.json
+bench/out/auto/
+bench/out/auto-report.json
 bench/out/metrics.json
 bench/out/sweep.json
 bench/out/*.html
