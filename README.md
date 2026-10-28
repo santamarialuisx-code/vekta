@@ -22,6 +22,7 @@ máquina.
 |---|---|
 | [`docs/competencia-vectormagic.md`](docs/competencia-vectormagic.md) | Análisis del competidor: producto, precios, arquitectura, limitaciones admitidas |
 | [`docs/experimento-01-vtracer-vs-vectormagic.md`](docs/experimento-01-vtracer-vs-vectormagic.md) | Medición de vtracer contra Vector Magic y veredicto de viabilidad |
+| [`docs/experimento-07-bw-adaptativo.md`](docs/experimento-07-bw-adaptativo.md) | Line art: modo binario con umbral de Otsu, F1 de tinta y por qué el adaptativo no hace falta |
 | [`bench/README.md`](bench/README.md) | Banco de pruebas: cómo medir fidelidad y economía de nodos |
 
 ## Banco de pruebas
@@ -36,11 +37,15 @@ npm run bench:serve  # http://127.0.0.1:8787/compare.html
 
 ```
 imagen
-  → cuantización perceptiva en OKLab
+  → ¿es line art? (neutro + poca tinta) ── sí → modo binario con umbral de Otsu, un solo relleno
+                                        └─ no → cuantización perceptiva en OKLab
   → trazado (vtracer: clustering de color + ajuste de Bézier)
   → limpieza de regiones (área mínima + reasignación por ΔE)
   → simplificación preservando esquinas
   → salida orientada a máquina (unión booleana, mm, DXF, kerf)
 ```
 
-Las pasadas 1 y 3 son las que separan a Vekta de un trazador genérico.
+Lo que separa a Vekta de un trazador genérico no es el ajuste de curvas —lo hace `vtracer` y lo hace
+bien—: es **decidir qué hay en la imagen** y **entregar geometría que una máquina pueda ejecutar**. Un
+escaneo no necesita 16 colores para el tono del papel: necesita un relleno, y con eso desaparece el
+doble corte.
