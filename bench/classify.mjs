@@ -100,7 +100,10 @@ function printTable(entries) {
 }
 
 function presetLabel(preset) {
-  if (preset.clustering === "bw") return `bw / ${decimal(preset.simplify)}`;
+  if (preset.clustering === "bw") {
+    const scale = preset.scale > 1 ? ` @${preset.scale}×` : "";
+    return `bw / ${decimal(preset.simplify)}${scale}`;
+  }
   return `${preset.colors} col / ${decimal(preset.simplify)}`;
 }
 

@@ -1,8 +1,8 @@
 # Experimento 12 — muestreo subpíxel: estimar el borde donde está, no donde cae el píxel
 
-> Fecha: 2026-10-28 · 4 escalas (1×, 2×, 3×, 4×) sobre `K1_drawing.jpg`, 4 SVGs.
-> Nodos, tamaño y tiempo **medidos y reales**; **SSIM y F1 de tinta pendientes** de la medición en
-> navegador (`bench/bw.html`), porque hace falta un canvas para rasterizar el SVG.
+> Fecha: 2026-10-28 · 4 escalas (1×, 2×, 3×, 4×) sobre `K1_drawing.jpg` con `simplify` 0,8, y
+> después la malla escala × `simplify` (1× y 3× × 0 / 0,4 / 0,8 / 1 / 1,2), 10 SVGs.
+> Nodos, tamaño, tiempo, **SSIM y F1 de tinta** medidos en `bench/bw.html` sobre los SVG emitidos.
 
 ---
 
@@ -11,6 +11,9 @@
 **La hipótesis se confirma: el borde estaba cuantizado al píxel.** Trazar a 3× y devolver las
 coordenadas a la rejilla original compra **+0,0286 de F1 de tinta** (0,9436 → 0,9722) y **+0,0256 de
 SSIM**, con 2,4× nodos. La escala 4× ya no paga: +0,0004 de F1 por +22 % de nodos y +74 % de tiempo.
+La [sección 9](#9-interacción-escala--simplify-el-preset-se-queda-en-3--12) cierra la interacción con
+`simplify` y deja el preset en **3× con `simplify` 1,2**: F1 0,9670 con 31 500 nodos, que sigue por
+encima del 1× sin simplificar y con menos nodos que él.
 
 El montaje es honesto: la escala 1× reproduce el preset del experimento 07 **con la geometría
 idéntica byte a byte** (17 749 nodos, el mismo `d`), así que lo que cambia a 2×, 3× y 4× es el
@@ -56,26 +59,36 @@ que a escala 4 representa el paso de 0,25 px con error ≤ 0,005 px: suficiente 
 
 ## 3. Qué se ha construido
 
-`bench/lib/subpixel.mjs`:
+`bench/lib/subpixel-transform.mjs` (geometría pura, sin motor: la importa también `web/app.mjs`):
 
 - **`upsampleLuminance(gray, width, height, scale)`** — interpolación bilineal con mapeo por centros
   de píxel (`origen = (destino + 0,5) / scale − 0,5`). El detalle no es cosmético: con ese mapeo la
   imagen ampliada ocupa exactamente el mismo rectángulo que la original, así que dividir la
   geometría por `scale` la devuelve al marco original **sin medio píxel de desplazamiento**. Los
   bordes se replican, para no inventar un marco oscuro en los extremos.
+- **`subpixelFrame(signals, scale)`** — la imagen que ve el motor: la luminancia ampliada en RGBA
+  gris opaco. Es el único paso que comparten el banco y el navegador.
 - **`scalePathData(d, factor)`** — reescala todas las longitudes de un `d`: `M L H V C S Q T A`,
   absolutos y relativos, con las repeticiones implícitas (`M0 0 10 10`) expandidas al parsear. En
   `A` se multiplican **solo los radios y el punto final**: la rotación es un ángulo y `large-arc` /
   `sweep` son booleanos; multiplicarlos rompería el arco sin que el SVG dejara de ser válido.
   La salida va con redondeo fijo a 2 decimales, sin ceros de relleno y sin `-0`.
-- **`subpixelOptions(signals, { scale })`** — amplía la luminancia, traza con el **umbral de Otsu de
-  la imagen original** (la interpolación es lineal en intensidad, así que la rampa cruza el mismo
-  nivel que cruzaba el borde duro) y devuelve el SVG en el marco original: `viewBox`, `width` y
-  `height` de la imagen de entrada y todos los `d` divididos por `scale`.
+- **`rescaleSvg(svg, width, height, factor)`** — `viewBox`, `width` y `height` de la imagen de
+  entrada y todos los `d` divididos por el factor.
 
-`bench/subpixel-sweep.mjs`: el CLI, con el mismo modelo que `bw-sweep.mjs`. Por defecto barre solo
-las imágenes que el banco clasifica como line art; `--all` fuerza las cuatro, que es una decisión
-explícita y no un accidente del barrido.
+`bench/lib/subpixel.mjs` (la mitad que necesita el motor):
+
+- **`traceSubpixel(trace, signals, { scale, simplify })`** — amplía, traza con el trazador inyectado
+  y devuelve la geometría al marco original. El trazador entra como argumento para que el mismo
+  camino corra en Node y en el navegador.
+- **`subpixelOptions(signals, { scale, simplify })`** — `traceSubpixel` con `vtracer.convertPixels` y
+  el **umbral de Otsu de la imagen original** (la interpolación es lineal en intensidad, así que la
+  rampa cruza el mismo nivel que cruzaba el borde duro).
+
+`bench/subpixel-sweep.mjs`: el CLI, con el mismo modelo que `bw-sweep.mjs`. Barre escala × `simplify`
+(`--scale 1,3 --simplify 0,0.4,0.8,1,1.2` por defecto) y por defecto solo las imágenes que el banco
+clasifica como line art; `--all` fuerza las cuatro, que es una decisión explícita y no un accidente
+del barrido.
 
 ---
 
@@ -83,7 +96,9 @@ explícita y no un accidente del barrido.
 
 `node bench/subpixel-sweep.mjs --only K1`. Preset del experimento 07 en todas las filas
 (`mode: spline`, `hierarchical: cutout`, `optimize: 2`, `clustering: bw`, Otsu de la imagen,
-`simplify: 0,8`). Lo único que cambia es la escala de muestreo.
+`simplify: 0,8`). Lo único que cambia es la escala de muestreo. El barrido se corrió con
+`--simplify 0.8` fijo porque era el preset entonces; la malla completa escala × `simplify` está en la
+sección 9.
 
 | Escala | Píxeles trazados | Nodos | Subpaths | Bytes | Tiempo |
 |---:|---:|---:|---:|---:|---:|
@@ -113,9 +128,10 @@ Lectura de los números que ya se pueden leer:
 
 ## 5. Cómo se completa la medición
 
-El JSON (`bench/out/subpixel-sweep.json`) lleva exactamente seis campos por fila — `image`, `svg`,
-`threshold`, `nodes`, `bytes`, `ms` — y nada más, para que la página no dependa de detalles internos
-del barrido. Con `npm run bench:serve` y `/bw.html`:
+El JSON (`bench/out/subpixel-sweep.json`) lleva una fila por combinación con la misma forma que las
+de `bw-sweep.mjs` (`imgSlug`, `config`, `kind`, `lineArt`, `fills`, `nodes`, `bytes`, `ms`…) más
+`scale` y `simplify`, para que `bw.html` mida las dos mallas sin cambios. Con `npm run bench:serve` y
+`/bw.html?json=out/subpixel-sweep.json`:
 
 1. Cargar el original de K1 y cada SVG del barrido.
 2. **F1 de tinta** con el corte en el Otsu de K1 (**135**), el mismo de la tabla del experimento 07.
@@ -144,6 +160,9 @@ píxel: dónde cae la rejilla decidía el contorno.**
 | 2× | 28 891 | 0,8291 | 0,9545 | 0,930 | 0,980 | 875 KB | 1 493 ms |
 | **3×** | 41 918 | **0,8359** | **0,9722** | 0,957 | 0,988 | 1 325 KB | 3 742 ms |
 | 4× | 51 206 | 0,8369 | 0,9726 | 0,955 | 0,991 | 1 648 KB | 6 509 ms |
+
+La fila 3× de esta tabla es con `simplify` 0,8, heredado del preset del experimento 07: mide la escala
+sola. El preset que se entrega lo fija la sección 9, en 3× con `simplify` 1,2.
 
 **Se entrega 3×**, que es donde se cruzan las tres lecturas:
 
@@ -179,15 +198,83 @@ render real del competidor.
 - **Medido en un solo hilo y una sola máquina.** Los tiempos son comparables entre filas (misma
   sesión, una detrás de otra) pero no con los de otros experimentos: el 520 ms de la escala 1× es el
   mismo trabajo que los 330 ms del experimento 07, no un empeoramiento.
+- **El 3× multiplica nodos, bytes y memoria.** Frente al preset de 1× cuesta +77 % de nodos y +168 %
+  de bytes (sección 9). En K1 son 32,4 Mpx de RGBA ampliado, unos 130 MB, más la luminancia
+  intermedia que se calcula para llegar ahí. Con imágenes grandes el presupuesto de memoria es la
+  primera pared, antes que el tiempo.
+- **El barrido sigue midiendo un solo line art del banco.** La malla escala × `simplify` de la
+  sección 9 son diez filas de K1, no diez imágenes: el resto del banco está en el CLI (`--all`) pero
+  no se ha corrido.
 
 ---
 
 ## 8. Siguiente
 
-1. **Barrer escala × `simplify`** (0, 0,4, 0,8) a 3×: si el muestreo fino permite simplificar más sin
-   perder F1, la escala se paga sola en nodos.
-2. **Probar el muestreo en el pipeline de color** (Gum Tree), que es donde el hueco de 0,032 está
+1. **Probar el muestreo en el pipeline de color** (Gum Tree), que es donde el hueco de 0,032 está
    medido contra el render real de Vector Magic. Es la prueba que decide si esto es una palanca
-   general o solo de line art.
-3. **Llevar el 3× al preset** (`LINE_ART_PRESET`) cuando el barrido de la línea 1 diga con qué
-   `simplify` se acompaña; hasta entonces la escala vive en su CLI, no en el preset.
+   general o solo de line art. Sigue pendiente: el 3× se entregó para line art.
+2. **Conseguir más line arts reales.** La decisión de la sección 9 se sostiene con una sola imagen;
+   hacen falta escaneos con otro trazo, otro papel y otro ruido para saber si el codo en 3× / 1,2 se
+   mueve con la imagen o es del motor.
+
+---
+
+## 9. Interacción escala × `simplify`: el preset se queda en 3× / 1,2
+
+La sección 6 fijó la escala con el `simplify` 0,8 que venía del experimento 07, sin barrer las dos
+perillas a la vez. `bench/subpixel-sweep.mjs` ya barre escala × `simplify`
+(`--scale 1,3 --simplify 0,0.4,0.8,1,1.2` por defecto) y emite una fila por combinación con la forma
+que usa `bw-sweep.mjs`, así que `bench/bw.html` mide la malla entera sin cambios. Diez filas sobre K1
+(3000×1200, Otsu 135), con SSIM y F1 de tinta medidos sobre los SVG emitidos; el JSON está en
+`bench/out/subpixel-sweep.json`.
+
+| Escala | `simplify` | Nodos | Tamaño | Tiempo | SSIM | F1 de tinta | Precisión | Exhaustividad |
+|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| 1× | 0 | 34 592 | 751 KB | 478 ms | 0,8116 | 0,9595 | 0,9572 | 0,9619 |
+| 1× | 0,4 | 22 854 | 491 KB | 450 ms | 0,8124 | 0,9566 | 0,9542 | 0,9590 |
+| 1× | 0,8 | 17 749 | 366 KB | 380 ms | 0,8103 | 0,9436 | 0,9423 | 0,9449 |
+| 1× | 1 | 16 314 | 328 KB | 361 ms | 0,8086 | 0,9375 | 0,9374 | 0,9377 |
+| 1× | 1,2 | 15 582 | 309 KB | 353 ms | 0,8060 | 0,9326 | 0,9326 | 0,9325 |
+| 3× | 0 | 100 983 | 3 128 KB | 2 893 ms | 0,8363 | 0,9773 | 0,9633 | 0,9918 |
+| 3× | 0,4 | 61 671 | 1 975 KB | 3 119 ms | 0,8362 | 0,9754 | 0,9609 | 0,9904 |
+| 3× | 0,8 | 41 918 | 1 325 KB | 2 733 ms | 0,8359 | 0,9722 | 0,9571 | 0,9878 |
+| 3× | 1 | 35 862 | 1 125 KB | 2 594 ms | 0,8354 | 0,9697 | 0,9544 | 0,9855 |
+| **3×** | **1,2** | **31 500** | **982 KB** | **2 549 ms** | 0,8348 | 0,9670 | 0,9510 | 0,9836 |
+
+Lectura de la malla:
+
+- **La curva de `simplify` no es la misma en las dos escalas, y no se pueden comparar sin decirlo.**
+  A 1× cada paso de `simplify` cuesta F1 casi linealmente: 1,2 da 0,9326, que es peor que el preset
+  0,8 del experimento 07 (0,9436) y por eso aquel preset se quedó en 0,8. A 3× la curva es mucho más
+  plana: el mismo 1,2 da 0,9670 porque el contorno viene de un muestreo más fino y pierde menos al
+  simplificarse.
+- **Entre 0,8 y 1,2 a 3× se cambia −0,0052 de F1 por −25 % de nodos.** De 41 918 a 31 500 nodos, sin
+  SSIM apreciable de por medio (0,8359 → 0,8348).
+- **El techo de la malla está en 3× sin simplificar** (F1 0,9773, 100 983 nodos). Es el mejor número
+  de tinta de todo el experimento y también el más caro: 2 893 ms y 3 128 KB.
+- **El 3× no regala nada a 1×.** La mejor fila de 1× (0,9595 sin simplificar) queda por debajo de la
+  fila que se entrega, y con más nodos: 34 592 frente a 31 500.
+
+**Decisión: 3× con `simplify` 1,2.** Se aplica la regla del experimento 07 —pocos nodos, con el F1
+como restricción, no como objetivo—: el mejor F1 de la malla es 0,9773, el suelo queda en 0,9613
+(0,016 por debajo) y 1,2 da 0,9670, que es la fila con menos nodos que lo cumple.
+
+Los argumentos, con el coste al lado:
+
+- **Contra la referencia de fidelidad equivalente, el 3× se paga solo en nodos.** 3× con 1,2 supera
+  al 1× sin simplificar en F1 (0,9670 frente a 0,9595) y a la vez usa menos nodos que él (31 500
+  frente a 34 592). Frente a esa referencia, el muestreo no cuesta nada que no sea el tiempo y el
+  tamaño del archivo.
+- **Contra el preset viejo, sí cuesta.** Frente a 1× con 0,8 —que era una elección de economía de
+  nodos— el preset entregado cuesta +77 % de nodos y +168 % de bytes para +0,0234 de F1
+  (0,9436 → 0,9670) y +0,0245 de SSIM (0,8103 → 0,8348). Es el precio real del entregable y no se
+  esconde: quien quiera el archivo más pequeño que se quede en 1× 0,8 y sepa qué F1 está dejando.
+- **El 4× sigue fuera.** La sección 6 midió que 4× añade 0,0004 de F1 por +22 % de nodos y +74 % de
+  tiempo; con `simplify` 1,2 a 3× el F1 ya está a 0,0103 del techo de la malla (0,9773) y con menos
+  de un tercio de sus nodos, así que no hay razón para pagar esa escala.
+
+Las dos perillas están en el preset: `LINE_ART_SCALE = 3` y `LINE_ART_PRESET.simplify = 1,2` en
+`bench/lib/lineart.mjs`. De ahí las toman los CLI —`bench/auto-trace.mjs`, que anota `subpixelScale`
+en el informe, y `bench/classify.mjs`, que imprime `bw / 1,2 @3×`— y la demo (`web/app.mjs`, que traza
+el line art a 3× importando solo la parte pura, `bench/lib/subpixel-transform.mjs`). La escala no viaja
+dentro de las opciones del motor, que no la conoce: la compone `bench/lib/subpixel.mjs`.

@@ -21,7 +21,9 @@ Lo que existe hoy:
   que se midió para cada una; el usuario no contesta un cuestionario.
 - **Dos caminos de trazado**: paleta cuantizada en OKLab con `simplify` por categoría, o modo
   binario con el umbral de Otsu de la propia imagen.
-- **Muestreo subpíxel** a 3× para line art: el borde se estima donde está, no donde cae la rejilla.
+- **Muestreo subpíxel** en line art: el preset se traza a 3× y devuelve la geometría a la rejilla
+  original, así que el borde se estima donde está y no donde cae el píxel. No es un experimento
+  suelto: es lo que entregan el CLI y la demo.
 - **Línea central** opcional para grabado y plotter: un recorrido por el medio del trazo, sin rellenos.
 - **Salida de taller**: unión booleana por color, unidades en milímetros, kerf, entrada y salida de
   herramienta, anidado en hoja, DXF multicapa con tintas con nombre y orden de impresión, y silueta

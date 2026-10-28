@@ -17,8 +17,8 @@ import vtracer from "@visioncortex/vtracer";
 
 import { classifyImage, imageSignals, tracePreset } from "./lib/category.mjs";
 import { decodeImage } from "./lib/image-io.mjs";
-import { lineArtOptions } from "./lib/lineart.mjs";
 import { quantize, renderQuantized } from "./lib/quantize.mjs";
+import { subpixelOptions } from "./lib/subpixel.mjs";
 import { svgMetrics } from "./lib/svg-metrics.mjs";
 import { INPUTS, slug } from "./lib/variants.mjs";
 
@@ -52,6 +52,8 @@ for (const input of inputs) {
   const category = verdict.category;
   const preset = tracePreset(category, signals);
   const simplify = options.simplify === null ? preset.simplify : options.simplify;
+  // La escala de muestreo es del preset: el color traza a 1× y el line art, a la del experimento 12.
+  const subpixelScale = preset.scale ?? 1;
 
   let svg;
   let paletteSize = 0;
@@ -59,13 +61,9 @@ for (const input of inputs) {
   try {
     if (category === "line-art") {
       // Sin paleta: el modo binario produce un único relleno, que es justo lo que evita el doble
-      // corte y lo que una máquina puede seguir sin separar tintas.
-      svg = vtracer.convertPixels(
-        new Uint8Array(image.rgba),
-        image.width,
-        image.height,
-        lineArtOptions(signals, { simplify }),
-      );
+      // corte y lo que una máquina puede seguir sin separar tintas. Se traza ampliado y la
+      // geometría vuelve al marco del PNG: el borde se estima, no se decide al píxel.
+      svg = subpixelOptions(signals, { scale: subpixelScale, simplify });
     } else {
       // Paleta y `simplify` salen de la categoría; `--colors` y `--simplify` los sobrescriben.
       const maxColors = options.colors === null ? preset.colors : options.colors;
@@ -100,6 +98,7 @@ for (const input of inputs) {
     decision: category === "line-art" ? "line-art" : "color",
     reason: verdict.reason,
     preset: { ...preset, simplify },
+    subpixelScale,
     threshold: signals.threshold,
     separability: round(signals.separability, 4),
     inkShare: round(signals.inkShare, 4),
@@ -128,7 +127,10 @@ console.log(`\n${report.length} SVGs en ${path.relative(process.cwd(), options.o
 console.log(`informe → ${path.relative(process.cwd(), options.json)}`);
 
 function presetLabel(preset, simplify) {
-  if (preset.clustering === "bw") return `bw / ${decimal(simplify)}`;
+  if (preset.clustering === "bw") {
+    const scale = preset.scale > 1 ? ` @${preset.scale}×` : "";
+    return `bw / ${decimal(simplify)}${scale}`;
+  }
   return `${preset.colors} col / ${decimal(simplify)}`;
 }
 

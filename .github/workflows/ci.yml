@@ -40,7 +40,8 @@ jobs:
         run: npm test
 
       # Humo del camino que se entrega (`bench/auto-trace.mjs`): cubre la carga del motor nativo,
-      # la lectura de una imagen real y la escritura del informe. Se limita a K1 y tarda menos de
-      # un segundo, así que cabe en las dos versiones de la matriz.
+      # la lectura de una imagen real y la escritura del informe. Se limita a K1, que el preset de
+      # line art traza a 3×, así que tarda unos segundos en vez de menos de uno: cabe igual en las
+      # dos versiones de la matriz.
       - name: Humo del trazado automático sobre K1
         run: node bench/auto-trace.mjs --only K1 --out /tmp/auto --json /tmp/auto.json

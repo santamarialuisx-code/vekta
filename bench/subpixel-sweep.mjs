@@ -2,7 +2,7 @@
 // Barrido de muestreo subpíxel: trazar ampliado y devolver la geometría a la rejilla original.
 //
 //   node bench/subpixel-sweep.mjs --only K1
-//   node bench/subpixel-sweep.mjs --all --scale 1,2
+//   node bench/subpixel-sweep.mjs --scale 1,3 --simplify 0,0.4,0.8
 //
 // El experimento 05 dejó un hueco de 0,032 de SSIM contra Vector Magic y demostró que no se cierra
 // con parámetros: `pathPrecision` de 2 a 8 produce exactamente la misma salida. La hipótesis de este
@@ -11,9 +11,13 @@
 // luminancia con interpolación bilineal (escala 2, 3, 4) el corte de Otsu puede caer en 0,5, 0,33 o
 // 0,25 de píxel; después la geometría se divide por la escala y el SVG queda en el marco original.
 //
-// El SSIM y el F1 de tinta se miden después en `bw.html`: hace falta un canvas para rasterizar. Este
-// CLI deja el SVG en disco y en el JSON lo justo para esa medición: `image`, `svg`, `threshold`,
-// `nodes`, `bytes` y `ms`. Nada más, para que la página no dependa de detalles internos del barrido.
+// El experimento 12 fijó la escala en 3× con `simplify 0,8` fijo. Este barrido cierra la
+// interacción que faltaba —escala × `simplify`— porque un muestreo más fino puede permitir
+// simplificar más sin perder tinta, y entonces la escala se paga sola en nodos.
+//
+// El SSIM y el F1 de tinta se miden después en `bw.html`: hace falta un canvas para rasterizar. Por
+// eso las filas del JSON llevan la misma forma que las de `bw-sweep.mjs` (`imgSlug`, `config`,
+// `kind`, `fills`…) y la página las mide sin cambios.
 
 import fs from "node:fs";
 import path from "node:path";
@@ -59,33 +63,44 @@ for (const input of inputs) {
   }
 
   for (const scale of options.scale) {
-    const started = Date.now();
-    let svg;
-    try {
-      svg = subpixelOptions(signals, { scale });
-    } catch (error) {
-      console.log(`  escala ${scale}×  ERROR ${error.message}`);
-      continue;
+    for (const simplify of options.simplify) {
+      const started = Date.now();
+      let svg;
+      try {
+        svg = subpixelOptions(signals, { scale, simplify });
+      } catch (error) {
+        console.log(`  escala ${scale}× simplify ${simplify}  ERROR ${error.message}`);
+        continue;
+      }
+      const ms = Date.now() - started;
+
+      const config = `x${scale}/s${trim(simplify)}`;
+      const name = `${imgSlug}__subpixel-${config.replace("/", "-")}.svg`;
+      fs.writeFileSync(path.join(options.output, name), svg);
+      const metrics = svgMetrics(svg);
+
+      report.push({
+        image: input.file,
+        imgSlug,
+        config,
+        kind: "subpixel",
+        lineArt: verdict.lineArt,
+        threshold: signals.threshold,
+        scale,
+        simplify,
+        nodes: metrics.nodes,
+        fills: metrics.colors,
+        bytes: metrics.bytes,
+        ms,
+        svg: `${outName}/${name}`,
+      });
+
+      console.log(
+        `  ${config.padEnd(9)}  nodos=${String(metrics.nodes).padStart(7)}  ` +
+          `rellenos=${String(metrics.colors).padStart(2)}  ` +
+          `${String(Math.round(metrics.bytes / 1024)).padStart(5)}KB  ${String(ms).padStart(6)}ms`,
+      );
     }
-    const ms = Date.now() - started;
-
-    const name = `${imgSlug}__subpixel-x${scale}.svg`;
-    fs.writeFileSync(path.join(options.output, name), svg);
-    const metrics = svgMetrics(svg);
-
-    report.push({
-      image: input.file,
-      svg: `${outName}/${name}`,
-      threshold: signals.threshold,
-      nodes: metrics.nodes,
-      bytes: metrics.bytes,
-      ms,
-    });
-
-    console.log(
-      `  escala ${String(scale).padStart(2)}×  nodos=${String(metrics.nodes).padStart(7)}  ` +
-        `${String(Math.round(metrics.bytes / 1024)).padStart(5)}KB  ${String(ms).padStart(6)}ms`,
-    );
   }
 }
 
@@ -94,9 +109,17 @@ console.log(`\n${report.length} SVGs en ${path.relative(process.cwd(), options.o
 console.log(`informe → ${path.relative(process.cwd(), options.json)}`);
 console.log("SSIM y F1 de tinta: npm run bench:serve y abrir /bw.html");
 
+/** `0,8` → `0.8`, `0` → `0`: la etiqueta no lleva coma para que quepa en un nombre de fichero. */
+function trim(value) {
+  return String(Number(value.toFixed(2)));
+}
+
 function parseArgs(args) {
   const parsed = {
-    scale: [1, 2, 3, 4],
+    // 1× como control (reproduce el preset del experimento 07) y 3× como codo medido en el 12.
+    scale: [1, 3],
+    // La malla que se midió para elegir el preset: 1,2 es el valor que se entrega.
+    simplify: [0, 0.4, 0.8, 1, 1.2],
     output: path.join("bench", "out", "subpixel-sweep"),
     json: path.join("bench", "out", "subpixel-sweep.json"),
     only: null,
@@ -107,6 +130,9 @@ function parseArgs(args) {
     switch (args[i]) {
       case "--scale":
         parsed.scale = args[++i].split(",").map(Number);
+        break;
+      case "--simplify":
+        parsed.simplify = args[++i].split(",").map(Number);
         break;
       case "--out":
         parsed.output = args[++i];
@@ -122,7 +148,7 @@ function parseArgs(args) {
         break;
       case "--help":
         console.log(
-          "uso: node bench/subpixel-sweep.mjs [--scale 1,2,3,4] [--only texto] [--all] [--out dir] [--json file]",
+          "uso: node bench/subpixel-sweep.mjs [--scale 1,3] [--simplify 0,0.4,0.8,1,1.2] [--only texto] [--all] [--out dir] [--json file]",
         );
         process.exit(0);
         break;

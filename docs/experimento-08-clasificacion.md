@@ -124,6 +124,10 @@ La paleta efectiva puede quedar por debajo del máximo (Gum Tree: 11 rellenos co
 porque el cuantizador descarta clústeres sin área; el presupuesto es un techo, no una cuota. Los
 milisegundos varían entre ejecuciones; nodos, rellenos y bytes de una misma versión, no.
 
+La traza de K1 es del preset de entonces (1× con `simplify` 0,8). El preset que se entrega desde el
+experimento 12 es 3× con `simplify` 1,2: 31 500 nodos y 982 KB, y el CLI lo imprime como
+`bw / 1,2 @3×`.
+
 ---
 
 ## 5. Presets por categoría

@@ -27,18 +27,20 @@ arrancar).
 
 1. Arrastrar o elegir una imagen → `createImageBitmap` → canvas → `getImageData`.
 2. `bench/lib/lineart.mjs` mide la imagen (`lineArtSignals`) y decide (`looksLikeLineArt`). Line art
-   → binario con el Otsu de la propia imagen (`lineArtOptions`). Color → cuantizar en OKLab
-   (`bench/lib/quantize.mjs`) y trazar con la paleta explícita. El selector permite forzar
-   cualquiera de los dos caminos para comparar; el modo por defecto es el que deciden los números.
+   → binario con el Otsu de la propia imagen (`lineArtOptions`), trazado a 3× (`LINE_ART_SCALE`) y
+   devuelto a la rejilla original, así que el motor ve un borde suave y no un escalón de píxel.
+   Color → cuantizar en OKLab (`bench/lib/quantize.mjs`) y trazar con la paleta explícita a 1×. El
+   selector permite forzar cualquiera de los dos caminos para comparar; el modo por defecto es el que
+   deciden los números.
 3. Muestra nodos, rellenos, subpaths, tamaño, milisegundos, tamaño del lienzo y el motivo de la
    decisión (neutros, tinta, Otsu, separabilidad, aristas).
 4. Descarga el SVG y una copia con unidades físicas. El motor emite `width`/`height` en píxeles y
    ningún `viewBox`, así que la versión en mm lo añade —`viewBox="0 0 3000 1200"`,
    `width="200mm"`, `height="80mm"`— sin tocar un solo comando del `d`.
 
-Que la página decida en vez de preguntar no es un adorno: en K1 el preset binario da 17 738 nodos y
-1 relleno, y forzar la paleta da 178 246 nodos y 28 rellenos. Diez veces más trabajo y veinte veces
-más peso para el mismo dibujo.
+Que la página decida en vez de preguntar no es un adorno: en K1 el preset binario da 31 490 nodos y
+982 KB, y forzar la paleta da 178 246 nodos y 28 rellenos. Casi seis veces más nodos, y 28 rellenos en
+vez de 1, para el mismo dibujo.
 
 ## Por qué hace falta `vtracer-web.mjs`
 
@@ -74,7 +76,10 @@ píxeles salen de un canvas mismo-origen con una imagen que eligió el usuario.
 ## Verificación
 
 Medido el 2026-10-28 con `ego-browser` (Chromium) sobre `bench/inputs/K1_drawing.jpg`, modo auto
-(que resuelve a binario), servidor en `PORT=8789` porque el 8787 estaba ocupado:
+(que resuelve a binario), servidor en `PORT=8789` porque el 8787 estaba ocupado. Los números de la
+tabla son de la ronda del preset 1× anterior; con el preset actual (3× con `simplify` 1,2) el
+navegador da **31 490 nodos, 982 KB y 3 323 ms**, y Node (`auto-trace.mjs`, mismo preset) 31 500
+nodos y 982 KB.
 
 | | nodos | rellenos | subpaths | tamaño | traza | lienzo |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -131,10 +136,14 @@ Los guiones de la ronda (`round-01.mjs` … `round-06.mjs`) están en esa misma 
 - **Firefox y Safari sin probar.** La página depende de `createImageBitmap` (Safari 15+), de
   `import()` sobre una URL de Blob y de `WebAssembly.instantiate`; todo es estándar, pero estándar
   no es lo mismo que probado.
-- **El trazado bloquea el hilo principal** mientras el wasm trabaja: K1 en binario son ~0,3 s y en
-  paleta 6,7 s. No hay Worker todavía; el aviso de estado se pinta antes con dos `requestAnimationFrame`.
-- **La diferencia de 11 nodos con Node no se puede quitar** sin meter un decodificador de JPEG
-  propio (jpeg-js en el navegador), que es una dependencia nueva y va contra la regla de esta
-  página: cero dependencias, cero build.
-- **Imágenes enormes**: todo el pipeline es de memoria (3,6 Mpx son 14 MB de RGBA más las copias del
-  cuantizado). Por encima de ~20 Mpx conviene redimensionar antes.
+- **El trazado bloquea el hilo principal** mientras el wasm trabaja: K1 en binario son ~3,3 s (traza
+  a 3×) y en paleta 6,7 s. No hay Worker todavía; el aviso de estado se pinta antes con dos
+  `requestAnimationFrame`.
+- **La diferencia de nodos con Node no se puede quitar** (11 con el preset 1× anterior, 10 con el
+  3×) sin meter un decodificador de JPEG propio (jpeg-js en el navegador), que es una dependencia
+  nueva y va contra la regla de esta página: cero dependencias, cero build.
+- **La memoria del 3×**: el line art se traza sobre la imagen ampliada, así que 3,6 Mpx piden 32,4 Mpx
+  de RGBA, unos 130 MB, más la luminancia intermedia. Por encima de ~8–10 Mpx conviene redimensionar
+  antes de trazar; el color sigue a 1×.
+- **Imágenes enormes en color**: todo el pipeline es de memoria (3,6 Mpx son 14 MB de RGBA más las
+  copias del cuantizado). A 1×, por encima de ~20 Mpx conviene redimensionar antes.

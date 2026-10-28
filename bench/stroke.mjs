@@ -23,12 +23,11 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import vtracer from "@visioncortex/vtracer";
-
 import { decodeImage } from "./lib/image-io.mjs";
-import { lineArtOptions, lineArtSignals, looksLikeLineArt } from "./lib/lineart.mjs";
+import { LINE_ART_SCALE, lineArtOptions, lineArtSignals, looksLikeLineArt } from "./lib/lineart.mjs";
 import { pathToPolylines, polylineLength } from "./lib/path-to-polyline.mjs";
 import { inkMask, simplifyPolyline, thin, traceSkeleton } from "./lib/skeleton.mjs";
+import { subpixelOptions } from "./lib/subpixel.mjs";
 import { svgMetrics } from "./lib/svg-metrics.mjs";
 import { svgShapes } from "./lib/svg-shapes.mjs";
 import { INPUTS, slug } from "./lib/variants.mjs";
@@ -106,7 +105,7 @@ for (const input of inputs) {
 
   // Misma imagen, mismo umbral, contorno del motor: la vara contra la que se compara la línea central.
   const contourStarted = Date.now();
-  const contour = contourPerimeter(image, signals);
+  const contour = contourPerimeter(signals);
   const contourMs = Date.now() - contourStarted;
 
   const entry = {
@@ -189,19 +188,18 @@ function centerlineSvg({ width, height, polylines }) {
 /**
  * Perímetro del contorno del mismo trazado, medido sobre el SVG del motor.
  *
+ * Es el contorno que se entregaría: el preset de line art completo, con su muestreo subpíxel
+ * (`LINE_ART_SCALE`), no un trazado a 1× que ya no es el que sale del producto. Si el preset cambia,
+ * esta comparación cambia con él.
+ *
  * Devuelve `{ perimeter, error }`. Si el motor falla o no emite formas rellenas, `perimeter` es
  * `null` y el motivo viaja en el informe: es preferible una comparación ausente y explicada a un
  * número inventado. Es la medición tal cual, sumando contornos externos y agujeros, que es lo que
  * costaría recorrer el contorno con la herramienta.
  */
-function contourPerimeter(image, signals) {
+function contourPerimeter(signals) {
   try {
-    const svg = vtracer.convertPixels(
-      new Uint8Array(image.rgba),
-      image.width,
-      image.height,
-      lineArtOptions(signals),
-    );
+    const svg = subpixelOptions(signals, { scale: LINE_ART_SCALE });
     const shapes = svgShapes(svg);
     if (shapes.length === 0) return { perimeter: null, error: "el motor no emitió formas rellenas" };
 

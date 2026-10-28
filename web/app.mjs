@@ -10,15 +10,14 @@
 // guardado entre visitas. El servidor estático solo reparte ficheros: si el navegador pudiera leer
 // píxeles de `file://` sin taint de CORS, ni siquiera haría falta.
 
-import { lineArtOptions, lineArtSignals, looksLikeLineArt } from "../bench/lib/lineart.mjs";
+import { LINE_ART_SCALE, lineArtOptions, lineArtSignals, looksLikeLineArt } from "../bench/lib/lineart.mjs";
 import { quantize, renderQuantized } from "../bench/lib/quantize.mjs";
+import { subpixelFrame, rescaleSvg } from "../bench/lib/subpixel-transform.mjs";
 import { svgMetrics } from "../bench/lib/svg-metrics.mjs";
 import { loadVtracer } from "./vtracer-web.mjs";
 
 /** Preset de color del banco: el de póster/foto del experimento 08. */
 const COLOR_PRESET = { mode: "spline", hierarchical: "cutout", optimize: 2, simplify: 0.8 };
-/** Preset de line art del experimento 07, el mismo que usa `auto-trace.mjs`. */
-const LINE_ART_SIMPLIFY = 0.8;
 
 const ui = {
   zona: document.querySelector("#zona"),
@@ -119,7 +118,12 @@ async function trace() {
   const started = performance.now();
   let svg;
   if (puesto === "binario") {
-    svg = vectorizeRgba(state.rgba, state.width, state.height, lineArtOptions(signals, { simplify: LINE_ART_SIMPLIFY }));
+    // Line art: se traza a `LINE_ART_SCALE`× (el motor ve un borde suave, no un escalón de píxel) y
+    // la geometría vuelve al marco de la imagen. Es el mismo camino que `bench/auto-trace.mjs`; la
+    // ampliación es JS puro, así que no hace falta otra dependencia en el cliente.
+    const frame = subpixelFrame(signals, LINE_ART_SCALE);
+    const traced = vectorizeRgba(frame.rgba, frame.width, frame.height, lineArtOptions(signals));
+    svg = rescaleSvg(traced, state.width, state.height, 1 / LINE_ART_SCALE);
   } else {
     // Paleta explícita: cuantizar en OKLab, repintar con esos colores y trazar con la lista fija.
     const maxColors = clampColors(ui.colores.value);

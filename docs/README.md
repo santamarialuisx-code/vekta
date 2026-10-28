@@ -14,10 +14,10 @@ completas y lo que ese experimento **no** prueba.
 | [06 — DXF y kerf](experimento-06-dxf-kerf.md) | ¿hay milímetros, DXF y compensación de corte? | Sí: ancho físico real, DXF R2000 en el navegador y compensación al radio de la herramienta. | Cuadrado de 10 mm → 10,2 mm de trayectoria con kerf 0,2 |
 | [07 — modo binario](experimento-07-bw-adaptativo.md) | ¿se arregla el line art sin tocar el motor? | Sí: binario con el Otsu de la propia imagen. El umbral adaptativo de Bradley–Roth pierde. | 174 451 nodos y 28 rellenos → 17 749 y 1; F1 0,9436 |
 | [08 — clasificación](experimento-08-clasificacion.md) | ¿quién elige el preset? | La imagen: cascada de umbrales con motivo, no un clasificador. | 4 de 4 imágenes a su preset del experimento 04 |
-| [09 — línea central](experimento-09-linea-central.md) | ¿cuánto recorre un grabador? | El contorno pasa dos veces; la cresta una sola, y sin rellenos. | 189 957 → 114 956 px (−39,5 %) |
+| [09 — línea central](experimento-09-linea-central.md) | ¿cuánto recorre un grabador? | El contorno pasa dos veces; la cresta una sola, y sin rellenos. | 196 796 → 114 956 px (−41,6 %) |
 | [10 — producción](experimento-10-produccion.md) | ¿es un archivo de taller o una demo? | De taller: entrada y salida de herramienta, anidado en hoja y tintas con nombre y orden. | 311,326 → 315,326 mm con 2 mm de entrada; 22 pruebas |
 | [11 — alfa](experimento-11-alfa.md) | ¿sirve el alfa como línea de corte? | Sí: con fondo transparente la silueta deja de ser el rectángulo del lienzo. | Perímetro +0,16 %; la pieza es 44,2 % del lienzo |
-| [12 — subpíxel](experimento-12-subpixel.md) | ¿dónde está el borde? | En el subpíxel: trazar a 3× y volver a la rejilla compra F1; a 4× ya no se paga. | F1 0,9436 → 0,9722 y SSIM 0,8103 → 0,8359 a 3× |
+| [12 — subpíxel](experimento-12-subpixel.md) | ¿dónde está el borde? | En el subpíxel: trazar a 3× compra F1 y el preset se queda en 3× / 1,2; a 4× ya no se paga. | F1 0,9436 → 0,9670 con 31 500 nodos (preset); techo 0,9773 a 3× sin simplificar |
 | [13 — paridad en foto](experimento-13-vectormagic-foto.md) | ¿el hueco de 0,032 es estructural? | Depende de la categoría: en foto se multiplica por cinco y ahí sí es de modelo. | Hueco 0,1574 en foto, 0,0154 en póster, 0,0457 en ilustración |
 | [Competencia — Vector Magic](competencia-vectormagic.md) | ¿qué hace el competidor y dónde falla? | Producto maduro y estrecho: la calidad está en el cuestionario, no en un algoritmo inalcanzable. | 7,99 USD/mes web, 295 USD escritorio, 2 MP; DXF solo en escritorio |
 
@@ -55,7 +55,9 @@ Dicho aquí para que nadie cite como resultado lo que es una línea de trabajo:
 
 - **Línea central (09)**: SSIM y F1 no son comparables con los del experimento 07 —un camino de 1 px
   no cubre una máscara de 3 px— y falta una vara propia.
-- **Subpíxel (12)**: barrer escala × `simplify`, probar el muestreo en color y llevar el 3× al preset.
+- **Subpíxel (12)**: probar el muestreo en el pipeline de color, que es donde el hueco de 0,032 está
+  medido contra Vector Magic, y medir más de un line art: el preset 3× / 1,2 se sostiene con una sola
+  imagen.
 - **Clasificación (08)**: los umbrales se eligieron con cuatro imágenes; falta un banco mayor antes
   de llamarlo precisión. Cualquier porcentaje de acierto sobre estas cuatro sería circular.
 - **Foto (13)**: una sola foto sostiene la conclusión de la categoría más cara de cerrar.
