@@ -18,8 +18,12 @@ npm run bench:sweep2   # barrido colores × simplify (calibración)
 npm run bench:geometry # barrido de esquinas, splicing y longitud
 npm run bench:knobs    # barrido de pathPrecision, filterSpeckle y layerDifference
 npm run bench:bw       # barrido del modo binario (umbral fijo y adaptativo) para line art
-npm run bench:auto     # decide por imagen (line art o color) y traza con el preset que toca
-npm test               # pruebas de geometría de corte
+npm run bench:auto     # decide la categoría por imagen y traza con su preset
+npm run bench:classify # categoría, señales y preset por imagen, sin trazar
+npm run bench:alpha    # silueta desde el alfa de un PNG (fixture: dona 400×400)
+npm run bench:stroke   # línea central para grabado y plotter (esqueleto + RDP)
+npm run bench:subpixel # muestreo subpíxel: barrido de escalas 1× a 4×
+npm test               # pruebas de geometría de corte, clasificación, alfa y línea central
 ```
 
 El servidor es necesario porque el cálculo de SSIM/PSNR lee píxeles de `<canvas>`, y
@@ -56,20 +60,31 @@ bench/
   lib/kerf.mjs         compensación de ancho de corte (ClipperOffset)
   lib/dxf.mjs          escritor DXF R2000 con unidades en mm
   lib/lineart.mjs      señales de imagen, umbral de Otsu y preset de line art
+  lib/category.mjs     señales de categoría, cascada de decisión y presets por categoría
   lib/oklab.mjs        sRGB ↔ OKLab y ΔE
   lib/quantize.mjs     cuantización ponderada por área
   lib/image-io.mjs     decodificar JPG/PNG a RGBA y escribir PNG
+  lib/lead.mjs         entrada y salida de herramienta (lead-in/out) sobre el anillo
+  lib/nest.mjs         anidado por estantes en una hoja, con hueco y giro de 90°
+  lib/spot.mjs         tintas: una capa por color, área y orden de impresión
+  lib/alpha.mjs        alfa → máscara del sujeto → imagen binaria para el motor
+  lib/skeleton.mjs     máscara de tinta, adelgazado Zhang–Suen y traza de la cresta
+  lib/subpixel.mjs     ampliado bilineal y reescalado del `d` a la rejilla original
   quantize.mjs         CLI: paleta de N colores + informe de ΔE
   pipeline.mjs         CLI: cuantizar → trazar y comparar con el trazado directo
   pipeline-sweep.mjs   CLI: barrido maxColors × simplify
   geometry-sweep.mjs   CLI: barrido cornerThreshold × spliceThreshold × lengthThreshold
   knobs-sweep.mjs      CLI: barrido pathPrecision × filterSpeckle × layerDifference
   bw-sweep.mjs         CLI: barrido del modo binario (umbral fijo, Bradley–Roth, simplify)
-  auto-trace.mjs       CLI: decisión line art / color y trazado con el preset
-  cut.mjs              CLI: informe + SVG cortable (`npm run bench:cut`)
-  test/                pruebas de la geometría de corte (`node --test`)
+  auto-trace.mjs       CLI: decisión por categoría y trazado con el preset que toca
+  classify.mjs         CLI: tabla de decisión por imagen, sin trazar
+  alpha-cut.mjs        CLI: silueta y DXF desde el alfa de un PNG
+  stroke.mjs           CLI: línea central (`--tolerance`, `--only`, `--inputs`)
+  subpixel-sweep.mjs   CLI: barrido de escalas de muestreo subpíxel
+  cut.mjs              CLI: informe + SVG/DXF cortable (`npm run bench:cut`)
+  test/                pruebas de geometría, corte, clasificación, alfa y línea central (`node --test`)
   run.mjs  sweep.mjs  merge-metrics.mjs  serve.mjs
-  compare.html  metrics.html  vmdiff.html
+  compare.html  metrics.html  vmdiff.html  bw.html
 ```
 
 ## Cómo se cuenta un «nodo»
@@ -188,6 +203,98 @@ El informe queda en `out/cut-report.json` e incluye el perímetro de **lo emitid
 archivo, para que la cifra no sea una promesa. Ver
 [`../docs/experimento-02-salida-cortable.md`](../docs/experimento-02-salida-cortable.md).
 
+## Clasificación por categoría
+
+`npm run bench:classify` imprime categoría, señales y preset sin escribir un SVG; `bench:auto` decide y
+traza. Las cuatro imágenes del banco caen donde las midió el experimento 04: ilustración 12 col / 0,6
+(7 083 nodos), póster 16 / 0,8 (8 055), foto 12 / 0,8 (43 214) y line art en binario (17 749).
+
+La regla es una **cascada de umbrales con motivo**, no un clasificador: line art por neutro ≥ 90 % y
+tinta ≤ 40 %, foto por > 2 000 colores, entropía > 0,85 o gris sin ser line art, póster por croma medio
+≥ 0,07, y el resto ilustración. Con cuatro imágenes no se calibra nada; el orden es la mitad de la
+regla y cualquier cifra de acierto sobre estas cuatro sería circular.
+
+Ver [`../docs/experimento-08-clasificacion.md`](../docs/experimento-08-clasificacion.md).
+
+## Línea central
+
+`npm run bench:stroke` adelgaza la máscara de tinta (Zhang–Suen), corta en los nodos y simplifica con
+RDP. En K1 el mismo trazado pasa de **189 957 px de contorno a 114 956 px de cresta (−39,5 %)** con
+**0 rellenos** (`stroke`, `fill="none"`), 21 621 nodos y 205 KB. A `--tolerance 2` los nodos quedan a
+la par del contorno (18 852 contra 17 749) manteniendo el −40,4 % de recorrido.
+
+Se gana en recorrido, no en nodos, y el precio está dicho: 8 587 polilíneas —un plotter levanta la
+pluma 8 587 veces—, 19 % de espuelas de menos de 3 px, y sin eje medial: un bloque macizo colapsa a un
+punto. SSIM y F1 quedan pendientes de una vara propia.
+
+Ver [`../docs/experimento-09-linea-central.md`](../docs/experimento-09-linea-central.md).
+
+## Archivo de producción
+
+Banderas nuevas de `cut.mjs`: `--lead-mm` y `--lead-angle` (entrada y salida de herramienta),
+`--nest` con `--sheet` y `--gap-mm`, y `--spot-names` para nombrar tintas en orden de impresión.
+`--lead-mm` y `--nest` exigen `--width-mm`, y con ellas la silueta sale solo en DXF (una trayectoria
+abierta no es un SVG relleno).
+
+```bash
+node bench/cut.mjs --only gum-tree-vector__cutout-opt --width-mm 100 --kerf-mm 0.2 \
+    --lead-mm 2 --lead-angle 45 --format dxf
+# recorrido 315,326 mm sobre 311,326 mm nominales: +4 mm = 2 × 2 mm de entrada
+```
+
+Dos piezas de 100×50 con 5 mm de hueco ocupan el 37,88 % de una hoja de 220×120. Sin las banderas
+nuevas, el SVG y el DXF salen **idénticos byte a byte** a la versión anterior.
+
+Ver [`../docs/experimento-10-produccion.md`](../docs/experimento-10-produccion.md).
+
+## Alfa como línea de corte
+
+`npm run bench:alpha` (o `node bench/alpha-cut.mjs --in pieza.png --width-mm 100 --kerf-mm 0.2`) emite
+silueta SVG y DXF desde el alfa del PNG. Sobre la dona de 400×400: perímetro **1 573,32 px** contra
+1 570,80 esperados (**+0,16 %**) y **70 672 px² de pieza frente a 160 000 del lienzo**, el 44,2 %.
+
+Con fondo transparente la silueta deja de ser el rectángulo del lienzo, que era la limitación que el
+experimento 02 no podía resolver. Un PNG con el 99,5 % o más de píxeles opacos no aporta forma y el CLI
+sale con código 1 en vez de emitir el marco.
+
+Ver [`../docs/experimento-11-alfa.md`](../docs/experimento-11-alfa.md).
+
+## Muestreo subpíxel
+
+`npm run bench:subpixel` amplía la imagen antes de decidir la tinta y devuelve la geometría a la
+rejilla original. Todo lo demás es el preset del experimento 07, así que la escala 1× reproduce el SVG
+de `bw-sweep` con el `d` idéntico: es el control del montaje.
+
+| K1 | Nodos | SSIM | F1 de tinta | Tiempo |
+|---|---:|---:|---:|---:|
+| 1× | 17 749 | 0,8103 | 0,9436 | 520 ms |
+| **3×** | **41 918** | **0,8359** | **0,9722** | 3 742 ms |
+| 4× | 51 206 | 0,8369 | 0,9726 | 6 509 ms |
+
+Se entrega 3×: 4× gana 0,0004 de F1 por +22 % de nodos y +74 % de tiempo. El borde estaba cuantizado
+al píxel.
+
+Ver [`../docs/experimento-12-subpixel.md`](../docs/experimento-12-subpixel.md).
+
+## Paridad en foto y póster
+
+Dos renders nuevos de Vector Magic, extraídos de su visor a 1:1, permiten medir el hueco por categoría
+con la misma vara de los experimentos 01–07:
+
+| Categoría | Vekta vs original | Vector Magic vs original | Hueco |
+|---|---:|---:|---:|
+| Ilustración (Gum Tree) | 0,9351 | 0,9808 | 0,0457 |
+| Póster (Cityscape) | 0,9518 | 0,9672 | 0,0154 |
+| Foto (Ángel) | 0,6693 | 0,8267 | **0,1574** |
+
+El 0,0325 del experimento 05 se reproduce exactamente y no es una constante: en póster es 0,015 y en
+foto se multiplica por cinco. En foto el fallo es de modelo —el fondo desenfocado da 0,676 nuestro
+contra 0,918 suyo, con 13 307 colores frente a 52 353— y no se arregla subiendo colores: 16 dieron
+0,6658 y 12 dan 0,6693. Los nodos de Vector Magic no se pueden medir; su visor no los publica.
+
+Ver [`../docs/experimento-13-vectormagic-foto.md`](../docs/experimento-13-vectormagic-foto.md).
+
 ## Resultado
 
 Ver [`../docs/experimento-01-vtracer-vs-vectormagic.md`](../docs/experimento-01-vtracer-vs-vectormagic.md).
+El índice de los trece experimentos está en [`../docs/README.md`](../docs/README.md).
