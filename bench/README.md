@@ -15,6 +15,8 @@ npm run bench:cut      # informe de doble corte y geometría cortable (SVG/DXF, 
 npm run bench:quantize # cuantización perceptiva en OKLab (antes de trazar)
 npm run bench:pipeline # cuantizar → trazar, contra el trazado directo
 npm run bench:sweep2   # barrido colores × simplify (calibración)
+npm run bench:geometry # barrido de esquinas, splicing y longitud
+npm run bench:knobs    # barrido de pathPrecision, filterSpeckle y layerDifference
 npm test               # pruebas de geometría de corte
 ```
 
@@ -56,6 +58,8 @@ bench/
   quantize.mjs         CLI: paleta de N colores + informe de ΔE
   pipeline.mjs         CLI: cuantizar → trazar y comparar con el trazado directo
   pipeline-sweep.mjs   CLI: barrido maxColors × simplify
+  geometry-sweep.mjs   CLI: barrido cornerThreshold × spliceThreshold × lengthThreshold
+  knobs-sweep.mjs      CLI: barrido pathPrecision × filterSpeckle × layerDifference
   cut.mjs              CLI: informe + SVG cortable (`npm run bench:cut`)
   test/                pruebas de la geometría de corte (`node --test`)
   run.mjs  sweep.mjs  merge-metrics.mjs  serve.mjs
@@ -114,6 +118,15 @@ navegador. Regla de selección: el mayor `simplify` cuya caída de SSIM no pase 
 | Line art | 16 | 1,2 | −27 % |
 
 Ver [`../docs/experimento-04-calibracion.md`](../docs/experimento-04-calibracion.md).
+
+## Geometría
+
+`bench:geometry` y `bench:knobs` barren la superficie de parámetros geométricos. Resultado: los
+umbrales mueven el SSIM **+0,0001 a +0,0002** — ruido. `cornerThreshold: 45` compra +0,0037 a cambio
+de +3 % de nodos en ilustración y queda como opción, no como default. `filterSpeckle: 0` gana +0,018
+con **19× nodos**, que ya no es vectorizar. El hueco de 0,032 frente a Vector Magic es de motor.
+
+Ver [`../docs/experimento-05-geometria.md`](../docs/experimento-05-geometria.md).
 
 ## Pipeline
 
