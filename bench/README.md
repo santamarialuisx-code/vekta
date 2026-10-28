@@ -12,6 +12,7 @@ npm run bench:sweep    # barrido fino de parámetros sobre Gum Tree
 npm run bench:merge    # añade el barrido a metrics.json
 npm run bench:serve    # servidor en http://127.0.0.1:8787/
 npm run bench:cut      # informe de doble corte y SVG cortable
+npm run bench:quantize # cuantización perceptiva en OKLab (antes de trazar)
 npm test               # pruebas de geometría de corte
 ```
 
@@ -44,6 +45,10 @@ bench/
   lib/svg-shapes.mjs   formas rellenas con herencia de `fill` y `fill-rule`
   lib/union.mjs        unión booleana y medición del doble corte
   lib/cut-svg.mjs      emisión de SVG de silueta y de capas
+  lib/oklab.mjs        sRGB ↔ OKLab y ΔE
+  lib/quantize.mjs     cuantización ponderada por área
+  lib/image-io.mjs     decodificar JPG/PNG a RGBA y escribir PNG
+  quantize.mjs         CLI: paleta de N colores + informe de ΔE
   cut.mjs              CLI: informe + SVG cortable (`npm run bench:cut`)
   test/                pruebas de la geometría de corte (`node --test`)
   run.mjs  sweep.mjs  merge-metrics.mjs  serve.mjs
@@ -74,6 +79,19 @@ máquina lo recorre dos veces. Vector Magic lo reconoce por escrito en su págin
 En una teselación perfecta `singlePassRedundancy → 2`,0: la mitad de los bordes se cortan dos
 veces. El kernel es Clipper (`clipper-lib`): los ports JS del algoritmo de Martinez fallan con
 los bordes casi coincidentes de un trazador real.
+
+## Cuantización
+
+`npm run bench:quantize` reemplaza el agrupamiento jerárquico por umbral de vtracer por **k-means
+ponderado por área en OKLab**. La diferencia es decisiva: un color que ocupa 0,2 % o más de los
+píxeles puede gastar una ranura; el ruido de un píxel no. Sobre Gum Tree con 16 colores, las
+nubes (65 436 px casi blancos) quedan **98,5 % intactas**; con 8 colores se las come la paleta.
+
+```
+ΔE medio · p95 · colores de entrada
+```
+
+El informe queda en `out/quantize-report.json` y los PNG en `out/quantized/`.
 
 ## Salida cortable
 

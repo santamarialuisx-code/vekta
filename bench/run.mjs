@@ -6,7 +6,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import vtracer from "@visioncortex/vtracer";
 import { svgMetrics } from "./lib/svg-metrics.mjs";
-import { VARIANTS, INPUTS } from "./lib/variants.mjs";
+import { VARIANTS, INPUTS, slug } from "./lib/variants.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const IN = path.join(here, "inputs");
@@ -16,13 +16,6 @@ fs.mkdirSync(SVG_DIR, { recursive: true });
 
 const filter = process.argv[2];
 const inputs = INPUTS.filter((i) => !filter || i.file.includes(filter));
-
-const slug = (s) =>
-  s
-    .replace(/\.(jpg|jpeg|png|gif|bmp)$/i, "")
-    .replace(/[^a-z0-9]+/gi, "-")
-    .replace(/^-|-$/g, "")
-    .toLowerCase();
 
 const results = [];
 
