@@ -1,0 +1,8 @@
+node_modules/
+bench/out/svg/
+bench/out/sweep/
+bench/out/metrics.json
+bench/out/sweep.json
+.atl/
+.DS_Store
+*.log

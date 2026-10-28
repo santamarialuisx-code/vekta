@@ -1,0 +1,16 @@
+{
+  "name": "vekta-bench",
+  "private": true,
+  "version": "0.0.1",
+  "type": "module",
+  "description": "Banco de pruebas: vtracer vs Vector Magic",
+  "scripts": {
+    "bench": "node bench/run.mjs",
+    "bench:sweep": "node bench/sweep.mjs",
+    "bench:merge": "node bench/merge-metrics.mjs",
+    "bench:serve": "node bench/serve.mjs"
+  },
+  "dependencies": {
+    "@visioncortex/vtracer": "1.0.0-alpha.4"
+  }
+}
