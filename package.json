@@ -11,7 +11,8 @@
     "bench:serve": "node bench/serve.mjs",
     "test": "node --test bench/test/*.test.mjs",
     "bench:cut": "node bench/cut.mjs",
-    "bench:quantize": "node bench/quantize.mjs"
+    "bench:quantize": "node bench/quantize.mjs",
+    "bench:pipeline": "node bench/pipeline.mjs"
   },
   "dependencies": {
     "@visioncortex/vtracer": "1.0.0-alpha.4",
