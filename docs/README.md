@@ -20,7 +20,7 @@ completas y lo que ese experimento **no** prueba.
 | [12 — subpíxel](experimento-12-subpixel.md) | ¿dónde está el borde? | En el subpíxel: trazar a 3× compra F1 y el preset se queda en 3× / 1,2; a 4× ya no se paga. | F1 0,9436 → 0,9670 con 31 500 nodos (preset); techo 0,9773 a 3× sin simplificar |
 | [13 — paridad en foto](experimento-13-vectormagic-foto.md) | ¿el hueco de 0,032 es estructural? | Depende de la categoría: en foto se multiplica por cinco y ahí sí es de modelo. | Hueco 0,1574 en foto, 0,0154 en póster, 0,0457 en ilustración |
 | [14 — fidelidad en color](experimento-14-fidelidad-color.md) | ¿se cierra el hueco con muestreo o paleta? | Ni una ni otra: es el ajuste de curvas. Trazando píxel a píxel se alcanza al competidor. | SSIM 0,9351 → 0,9776 (ilustración), 0,9518 → 0,9631 (póster), 0,6693 → 0,8365 (foto, por encima de VM) |
-| [15 — reajuste de curvas](experimento-15-reajuste-curvas.md) | ¿se puede tener la fidelidad del píxel con curvas? | Sí: píxel + Béziers encima, que es la arquitectura de Vector Magic. | 0,9766 con 11 527 nodos (el píxel pide 64 036); póster y foto superan al píxel |
+| [15 — reajuste de curvas](experimento-15-reajuste-curvas.md) | ¿se puede tener la fidelidad del píxel con curvas? | Sí: píxel + Béziers encima, que es la arquitectura de Vector Magic. A 3× es el único modo que aguanta el zoom. | 0,9766 con 11 527 nodos (el píxel pide 64 036); póster y foto superan al píxel |
 | [Competencia — Vector Magic](competencia-vectormagic.md) | ¿qué hace el competidor y dónde falla? | Producto maduro y estrecho: la calidad está en el cuestionario, no en un algoritmo inalcanzable. | 7,99 USD/mes web, 295 USD escritorio, 2 MP; DXF solo en escritorio |
 
 ## El hilo, en cinco pasos
@@ -67,8 +67,9 @@ Dicho aquí para que nadie cite como resultado lo que es una línea de trabajo:
   de llamarlo precisión. Cualquier porcentaje de acierto sobre estas cuatro sería circular.
 - **Foto (13)**: una sola foto sostiene la conclusión de la categoría más cara de cerrar.
 - **Alfa (11)**: el fixture es sintético; falta un PNG real con sombras y bordes suaves.
-- **Fidelidad de color (14, 15)**: falta el juicio a escala 3× de los tres modos, y la foto sigue
-  costando 153 641 nodos en modo refit (367 032 en píxel): falta el presupuesto tonal adaptativo.
+- **Fidelidad de color (14, 15)**: la foto sigue costando 153 641 nodos en modo refit (367 032 en
+  píxel): falta el presupuesto tonal adaptativo. Y queda decidir si `refit` pasa a ser el modo por
+  defecto de la entrega de color (el juicio a escala lo recomienda; el corte sigue pidiendo `curvas`).
 
 ## Errata
 

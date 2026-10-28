@@ -101,11 +101,50 @@ El ángulo de esquina (45°, 60°, 75°) mueve ±0,0002: no es una perilla.
 
 ---
 
-## 6. Siguiente
+## 6. Juicio a escala 3×
 
-1. **Juicio a escala 3×**: recortes de follaje, ventanas y agua para los tres modos. Es la prueba que
-   dice si el reajuste se ve tan bien como puntúa.
-2. **Foto en modo refit sin 153 000 nodos**: presupuesto tonal adaptativo + reajuste, que es lo que
+El SSIM premia reproducir el raster, así que no puede decidir solo. Se juzgó a ojo, con criterios
+declarados: ¿se conservan los trazos finos?, ¿los bordes largos son rectos o tiemblan?, ¿se ve el
+escalón del píxel?, ¿las esquinas quedan donde estaban?
+
+**Método.** Cinco recortes de 240–260 px de lado, renderizados a **3×** en Chromium y apilados en el
+mismo orden: original (raster ampliado), `curvas`, `fidelidad` (píxel) y `refit`. Recortes: ramas
+finas y un pájaro (Gum Tree), reflejos del agua (Gum Tree), ventanas y franjas (Cityscape), cara y
+pelo (Ángel) y fondo desenfocado (Ángel). Capturas fuera del repo, en
+`C:/Users/luis/ego/vekta-color-subpixel-20261028/zoom-*.png`; las tiras se generan con
+`zoom-strips.mjs` (misma carpeta) y se capturan con `ego-browser`.
+
+| Recorte | `curvas` | `fidelidad` (píxel) | **`refit`** |
+|---|---|---|---|
+| Ramas finas y pájaro | Engorda las ramas y fusiona bifurcaciones: el dibujo pierde trazos | Fiel, con escalones de 1 px visibles a 3× | **Conserva ramas y bifurcaciones, borde liso** |
+| Reflejos del agua | Adelgaza o borra los reflejos pequeños | Fiel, escalonado | **Fiel y liso** |
+| Ventanas y franjas | Rectas largas con temblor visible y ventanas deformadas | Recto, pero escalonado | **Recto y liso, esquinas donde estaban** |
+| Cara y pelo (foto) | Manchas planas sin estructura: el pelo desaparece | Conserva el pelo como formas, escalonado | **Pelo como formas lisas; mejor que el píxel** |
+| Fondo desenfocado | Bandas planas | Escalonado | **Liso, sin bandas nuevas** |
+
+Lectura:
+
+- **`refit` aguanta el zoom en las tres categorías**: es el único modo en el que no aparece ni el
+  escalón del píxel ni el temblor de las curvas. Las ramas finas del Gum Tree y los reflejos del agua
+  sobreviven, que era justo lo que `curvas` se comía (y lo que el experimento 01 llamó «contorno con
+  temblor»).
+- **`curvas` se ve peor de lo que puntúa**: el SSIM castiga poco un borde largo que tiembla, y a 3×
+  ese temblor es lo primero que salta en las franjas del póster.
+- **`fidelidad` es fiel pero no es una entrega**: a 1:1 es indistinguible; a 3× es una escalera.
+- **La foto sigue siendo otro problema**: el reajuste la deja más limpia, pero con 24 colores sigue
+  habiendo posterización. Eso no lo arregla la geometría.
+
+**Consecuencia de producto.** Para entregar, imprimir o grabar: `refit`. Para cortar y para
+archivos pequeños: `curvas`. `fidelidad` queda como referencia de medición y para comparar con el
+raster, no como modo de entrega.
+
+---
+
+## 7. Siguiente
+
+1. **Foto en modo refit sin 153 000 nodos**: presupuesto tonal adaptativo + reajuste, que es lo que
    hace Vector Magic con su modo foto («as many colors as the algorithm deems necessary»).
-3. **Encaje de esquinas al 50 % de cobertura** del antialiasing: hoy la esquina se conserva donde la
+2. **Encaje de esquinas al 50 % de cobertura** del antialiasing: hoy la esquina se conserva donde la
    ve el modo píxel; el centro de la rampa puede estar medio píxel más allá.
+3. **Decidir el modo por defecto del producto**: con el juicio a escala, `refit` es el candidato para
+   la entrega de color; el corte sigue pidiendo `curvas`.

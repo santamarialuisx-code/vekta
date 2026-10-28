@@ -337,6 +337,10 @@ El ajuste vive en `lib/curve-fit.mjs` (anillos → curvas, puro) y `lib/color-re
 con tolerancia 0,25 y esquina 60°; `--configs rdp:fit:angle` barre la frontera. `auto-trace.mjs
 --refit` y la demo del navegador usan el modo.
 
+A 3× es el único de los tres modos que aguanta el zoom: `curvas` engorda los trazos finos y tiembla
+en las rectas largas, `fidelidad` muestra el escalón del píxel, y `refit` conserva el detalle con
+borde liso (juicio visual del experimento 15, capturas fuera del repo).
+
 Ver [`../docs/experimento-15-reajuste-curvas.md`](../docs/experimento-15-reajuste-curvas.md).
 
 ## Paridad en foto y póster
