@@ -17,6 +17,15 @@
 //   porque el barrido lo usa como umbral de referencia del modo fijo.
 // - `edgeDensity` — proporción de píxeles con gradiente fuerte (Sobel). Informativo: el line art
 //   tiene muchas aristas y poca tinta, que es justo lo que hace que el modo binario ahorre nodos.
+//
+// El alfa se mide antes que todo lo demás, porque cambia lo que significan las tres señales. Un PNG
+// recortado guarda negro (0, 0, 0, 0) donde no hay sujeto: leído en crudo, ese negro es tinta para
+// el histograma y neutro para la regla, así que el clasificador veía una foto y el modo binario
+// trazaba un lienzo negro completo. Aquí el fondo transparente **se compone sobre papel blanco**
+// —lo que es, papel— y solo los píxeles visibles cuentan para `neutralShare`. Con un PNG opaco
+// nada cambia: alfa 255 no altera ni un decimal.
+
+import { ALPHA_RULES } from "./alpha.mjs";
 
 /** Criterios de decisión. Públicos para que el barrido y las pruebas hablen del mismo número. */
 export const LINE_ART_RULES = {
@@ -109,18 +118,28 @@ export function otsuThreshold(hist) {
   };
 }
 
-/** Proporción de píxeles sin croma: un escaneo a lápiz es gris, una ilustración no. */
-export function neutralShare(rgba, chroma = LINE_ART_RULES.neutralChroma) {
+/**
+ * Proporción de píxeles sin croma: un escaneo a lápiz es gris, una ilustración no.
+ *
+ * `visible` es la máscara de píxeles con sujeto (alfa sobre el umbral). El fondo transparente es
+ * blanco, y el blanco es neutro: contarlo haría que cualquier ilustración recortada pasara por
+ * line art con solo tener mucho margen. Sin máscara se cuentan todos los píxeles, que es lo que
+ * quiere una imagen opaca.
+ */
+export function neutralShare(rgba, chroma = LINE_ART_RULES.neutralChroma, visible = null) {
   const pixels = Math.floor(rgba.length / 4);
   if (pixels === 0) return 0;
 
+  let considered = 0;
   let neutral = 0;
-  for (let i = 0; i < pixels * 4; i += 4) {
+  for (let p = 0, i = 0; p < pixels; p++, i += 4) {
+    if (visible && !visible[p]) continue;
+    considered++;
     const max = Math.max(rgba[i], rgba[i + 1], rgba[i + 2]);
     const min = Math.min(rgba[i], rgba[i + 1], rgba[i + 2]);
     if (max - min < chroma) neutral++;
   }
-  return neutral / pixels;
+  return considered > 0 ? neutral / considered : 0;
 }
 
 /** Proporción de píxeles con gradiente fuerte (Sobel, interiores). */
@@ -145,9 +164,29 @@ export function edgeDensity(gray, width, height, magnitude = LINE_ART_RULES.edge
   return seen > 0 ? edges / seen : 0;
 }
 
-/** Todas las señales de una imagen, en una sola pasada de histograma. */
+/**
+ * Todas las señales de una imagen, en una sola pasada de histograma.
+ *
+ * `gray` sale **compuesta sobre papel blanco**: donde el alfa no llega al umbral el valor es 255,
+ * y el antialiasing del borde se mezcla con el papel. Eso es exactamente lo que necesita
+ * `subpixelFrame`, que traza `gray` tal cual, y evita que el fondo transparente entre al motor como
+ * tinta.
+ */
 export function lineArtSignals(rgba, width, height) {
   const gray = luminance(rgba, width, height);
+  const pixels = width * height;
+
+  const visible = new Uint8Array(pixels);
+  let visibleCount = 0;
+  for (let p = 0, i = 3; p < pixels; p++, i += 4) {
+    const alpha = rgba[i];
+    if (alpha >= ALPHA_RULES.minAlpha) {
+      visible[p] = 1;
+      visibleCount++;
+    }
+    if (alpha < 255) gray[p] = gray[p] * (alpha / 255) + 255 * (1 - alpha / 255);
+  }
+
   const histogram = luminanceHistogram(gray);
   const otsu = otsuThreshold(histogram);
 
@@ -159,8 +198,10 @@ export function lineArtSignals(rgba, width, height) {
     threshold: otsu.threshold,
     separability: otsu.separability,
     inkShare: otsu.inkShare,
-    neutralShare: neutralShare(rgba),
+    neutralShare: neutralShare(rgba, LINE_ART_RULES.neutralChroma, visible),
     edgeDensity: edgeDensity(gray, width, height),
+    /** Proporción del lienzo con sujeto (alfa ≥ 128). 1 en una imagen opaca. */
+    visibleShare: visibleCount / pixels,
   };
 }
 
