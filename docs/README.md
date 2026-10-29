@@ -21,6 +21,7 @@ completas y lo que ese experimento **no** prueba.
 | [13 — paridad en foto](experimento-13-vectormagic-foto.md) | ¿el hueco de 0,032 es estructural? | Depende de la categoría: en foto se multiplica por cinco y ahí sí es de modelo. | Hueco 0,1574 en foto, 0,0154 en póster, 0,0457 en ilustración |
 | [14 — fidelidad en color](experimento-14-fidelidad-color.md) | ¿se cierra el hueco con muestreo o paleta? | Ni una ni otra: es el ajuste de curvas. Trazando píxel a píxel se alcanza al competidor. | SSIM 0,9351 → 0,9776 (ilustración), 0,9518 → 0,9631 (póster), 0,6693 → 0,8365 (foto, por encima de VM) |
 | [15 — reajuste de curvas](experimento-15-reajuste-curvas.md) | ¿se puede tener la fidelidad del píxel con curvas? | Sí: píxel + Béziers encima, que es la arquitectura de Vector Magic. A 3× es el único modo que aguanta el zoom. | 0,9766 con 11 527 nodos (el píxel pide 64 036); póster y foto superan al píxel |
+| [16 — colores planos](experimento-16-colores-planos.md) | ¿por qué un dibujo plano sale sucio? | La paleta gastaba 18 de 24 ranuras en la rampa de antialiasing. Podando rampas: 6 colores y el dibujo se ve mejor que el JPEG. | 766 → 24 paths, 22 476 → 973 nodos, 381 → 28 KB |
 | [Competencia — Vector Magic](competencia-vectormagic.md) | ¿qué hace el competidor y dónde falla? | Producto maduro y estrecho: la calidad está en el cuestionario, no en un algoritmo inalcanzable. | 7,99 USD/mes web, 295 USD escritorio, 2 MP; DXF solo en escritorio |
 
 ## El hilo, en cinco pasos
