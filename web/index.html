@@ -72,16 +72,32 @@
         place-items: center;
         min-height: 260px;
         /* Papel, no pantalla: el binario emite tinta negra sobre fondo transparente y en un panel
-           oscuro no se vería nada. */
-        background: #f6f6f4;
+           oscuro no se vería nada. El damero marca lo que quedó transparente (fondo quitado o
+           pieza borrada) sin competir con el dibujo. */
+        background-color: #f6f6f4;
+        background-image:
+          linear-gradient(45deg, #ececea 25%, transparent 25%),
+          linear-gradient(-45deg, #ececea 25%, transparent 25%),
+          linear-gradient(45deg, transparent 75%, #ececea 75%),
+          linear-gradient(-45deg, transparent 75%, #ececea 75%);
+        background-size: 16px 16px;
+        background-position: 0 0, 0 8px, 8px -8px, -8px 0;
         border: 1px solid var(--borde);
         border-radius: 8px;
         padding: 10px;
         overflow: hidden;
       }
-      #vista { max-width: 100%; height: auto; image-rendering: auto; }
+      #vista { width: 100%; }
+      #vista svg { display: block; width: 100%; height: auto; max-width: 100%; }
+      #vista svg path { cursor: pointer; }
+      #vista svg path:hover { stroke: #ff2d55; stroke-width: 1.5px; vector-effect: non-scaling-stroke; }
+      #vista svg path[data-vk-sel] { stroke: #ff2d55; stroke-width: 2px; vector-effect: non-scaling-stroke; }
       #vista[hidden], #vacio[hidden] { display: none; }
       #vacio { color: #6b7280; font-size: 12px; }
+      .edicion { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 10px; }
+      #seleccion { color: var(--tenue); font-size: 12px; margin-right: auto; }
+      .interruptor { display: flex; align-items: center; gap: 6px; color: var(--tenue); font-size: 12px; }
+      .interruptor input { accent-color: var(--acento); }
       dl#medidas { display: flex; flex-wrap: wrap; gap: 10px 26px; margin: 0 0 8px; }
       dl#medidas > div { display: grid; gap: 1px; }
       dl#medidas dt { font-size: 11px; color: var(--tenue); letter-spacing: 0.04em; text-transform: uppercase; }
@@ -95,7 +111,10 @@
       <p>
         La imagen no sale de aquí: se lee con <code>createImageBitmap</code>, se mide en JS, se
         vectoriza con el wasm de vtracer y se descarga desde memoria. Sin subidas y sin servidor de
-        aplicación; el servidor estático solo reparte ficheros.
+        aplicación; el servidor estático solo reparte ficheros. Un dibujo plano se traza con sus
+        colores, no con la rampa de su antialiasing; el fondo se quita con una varita desde el borde
+        (o con el alfa del PNG), y el SVG se puede editar: cada pieza es un path, se toca con el
+        ratón y se borra.
       </p>
     </header>
 
@@ -113,6 +132,7 @@
           modo
           <select id="modo">
             <option value="auto" selected>auto (decide la imagen)</option>
+            <option value="plano">colores planos (ilustración)</option>
             <option value="binario">binario (Otsu)</option>
             <option value="curvas">curvas (perfil de corte)</option>
             <option value="fidelidad">fidelidad (píxel a píxel)</option>
@@ -127,6 +147,22 @@
           ancho de corte (mm)
           <input id="ancho" type="number" min="1" max="2000" step="1" value="200" />
         </label>
+        <label class="interruptor">
+          <input id="fondo" type="checkbox" />
+          quitar fondo
+        </label>
+        <label class="interruptor">
+          <input id="borde" type="checkbox" />
+          borde blanco
+        </label>
+        <label>
+          borde (px)
+          <input id="borde-px" type="number" min="1" max="200" step="1" value="8" />
+        </label>
+        <label>
+          tolerancia
+          <input id="fondo-tol" type="number" min="0" max="441" step="1" value="28" />
+        </label>
         <button id="descargar-svg" disabled>Descargar SVG</button>
         <button id="descargar-mm" class="secundario" disabled>Descargar en mm</button>
         <span id="estado">sin imagen</span>
@@ -140,8 +176,19 @@
       </section>
 
       <section class="panel">
+        <div class="edicion">
+          <span id="seleccion">clic en una pieza para seleccionarla</span>
+          <label class="interruptor">
+            rellenar con
+            <select id="relleno" disabled></select>
+          </label>
+          <button id="rellenar" class="secundario" disabled>Rellenar</button>
+          <button id="borrar-pieza" class="secundario" disabled>Borrar pieza</button>
+          <button id="borrar-color" class="secundario" disabled>Borrar color</button>
+          <button id="deshacer" class="secundario" disabled>Deshacer</button>
+        </div>
         <div id="vista-caja">
-          <img id="vista" alt="Vista previa del SVG trazado" hidden />
+          <div id="vista" hidden></div>
           <span id="vacio">aquí aparece el SVG trazado</span>
         </div>
       </section>
