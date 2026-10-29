@@ -127,6 +127,183 @@ export function renderQuantized(rgba, width, height, result) {
   return out;
 }
 
+/**
+ * Criterios de la paleta plana, medidos en el experimento 16.
+ *
+ * `maxResidual` es la frontera entre arte plano y foto: en el banco, el Yoshi (0,050) y Gum Tree
+ * (0,013) quedan por debajo; el póster con cielo degradado (0,089) y la foto del Ángel (0,086) por
+ * encima. No es un número universal: es el umbral que separa estos casos y hay que barrerlo.
+ */
+export const FLAT_RULES = {
+  /** Colores del cuantizado fino: el techo de lo que la poda puede considerar. */
+  colors: 24,
+  /** Distancia máxima (OKLab) de un color a la recta entre otros dos para tratarlo como mezcla. */
+  rampTolerance: 0.05,
+  /** La pareja que absorbe tiene que pesar al menos esto veces más que el color absorbido. */
+  massRatio: 3,
+  /** Dos clústeres a menos de esta distancia son el mismo color. */
+  nearDuplicate: 0.02,
+  /** Área mínima (px) para que un color sobreviva aunque no sea rampa. */
+  minCount: 300,
+  /** Por debajo de este residual la imagen es arte plano. */
+  maxResidual: 0.06,
+};
+
+/**
+ * Poda los colores que no son colores, sino mezclas.
+ *
+ * El antialiasing de un contorno deja una docena de tonos entre el negro y el verde. Ninguno es una
+ * decisión de diseño: cada uno es una mezcla lineal de otros dos que sí lo son. Aquí se detecta eso
+ * —distancia del color a la recta que une otros dos clústeres en OKLab— y se suma al extremo más
+ * cercano. Un color plano pequeño (el amarillo de una suela, el rojo de una silla) no cae sobre esa
+ * recta y sobrevive.
+ *
+ * @param {{ rgb: number[], lab: number[], count: number }[]} clusters
+ * @returns {{ rgb: number[], lab: number[], count: number }[]} nueva lista, ordenada por área
+ */
+export function pruneRamp(clusters, settings = {}) {
+  if (!Array.isArray(clusters) || clusters.length === 0) {
+    throw new Error("hacen falta clústeres con su área para podar la paleta");
+  }
+
+  const { rampTolerance, massRatio, nearDuplicate, minCount } = { ...FLAT_RULES, ...settings };
+  let alive = clusters.map((cluster) => ({ ...cluster }));
+
+  for (let round = 0; round < clusters.length + 1; round++) {
+    let changed = false;
+
+    // 1. Duplicados: dos clústeres que son el mismo color.
+    for (let i = 0; i < alive.length && !changed; i++) {
+      for (let j = i + 1; j < alive.length; j++) {
+        if (deltaE(alive[i].lab, alive[j].lab) >= nearDuplicate) continue;
+        const [keep, drop] = alive[i].count >= alive[j].count ? [i, j] : [j, i];
+        alive[keep].count += alive[drop].count;
+        alive.splice(drop, 1);
+        changed = true;
+        break;
+      }
+    }
+    if (changed) continue;
+
+    // 2. Rampas: un color que es mezcla de otros dos más grandes.
+    outer: for (let k = 0; k < alive.length; k++) {
+      const candidate = alive[k];
+      for (let i = 0; i < alive.length; i++) {
+        for (let j = i + 1; j < alive.length; j++) {
+          if (i === k || j === k) continue;
+          const a = alive[i];
+          const b = alive[j];
+          if (a.count + b.count < massRatio * candidate.count) continue;
+          if (distanceToSegment(candidate.lab, a.lab, b.lab) > rampTolerance) continue;
+          const target = deltaE(candidate.lab, a.lab) <= deltaE(candidate.lab, b.lab) ? i : j;
+          alive[target].count += candidate.count;
+          alive.splice(k, 1);
+          changed = true;
+          break outer;
+        }
+      }
+    }
+    if (changed) continue;
+
+    // 3. Motes: un color que ocupa menos que una uña no puede gastar una ranura.
+    if (alive.length > 1) {
+      let smallest = -1;
+      for (let i = 0; i < alive.length; i++) {
+        if (alive[i].count < minCount && (smallest < 0 || alive[i].count < alive[smallest].count)) smallest = i;
+      }
+      if (smallest >= 0) {
+        const victim = alive[smallest];
+        let target = -1;
+        let best = Infinity;
+        for (let i = 0; i < alive.length; i++) {
+          if (i === smallest) continue;
+          const distance = deltaE(victim.lab, alive[i].lab);
+          if (distance < best) {
+            best = distance;
+            target = i;
+          }
+        }
+        alive[target].count += victim.count;
+        alive.splice(smallest, 1);
+        continue;
+      }
+    }
+
+    if (!changed) break;
+  }
+
+  return alive.sort((a, b) => b.count - a.count);
+}
+
+/**
+ * La paleta de un dibujo plano: cuantiza fino, poda las mezclas y devuelve los colores de verdad.
+ *
+ * Devuelve también `residual` —el error medio (OKLab) de la imagen contra la paleta podada—, que es
+ * la señal que distingue arte plano de foto: 0,013–0,050 en plano, 0,086–0,089 en foto y degradado.
+ *
+ * @returns {{ palette: number[][], paletteHex: string[], count: number, residual: number, merged: number }}
+ */
+export function flatPalette(rgba, width, height, options = {}) {
+  if (!Number.isInteger(width) || !Number.isInteger(height) || width <= 0 || height <= 0) {
+    throw new Error("width y height deben ser enteros positivos");
+  }
+  const pixels = width * height;
+  if (!rgba || rgba.length !== pixels * 4) {
+    throw new Error(`el buffer no tiene width × height × 4 bytes (${pixels * 4} esperados)`);
+  }
+
+  const settings = { ...FLAT_RULES, ...options };
+  const alphaThreshold = settings.alphaThreshold ?? 8;
+
+  const fine = quantize(rgba, width, height, { maxColors: settings.colors, alphaThreshold });
+  if (fine.palette.length === 0) {
+    return { palette: [], paletteHex: [], count: 0, residual: 0, merged: 0 };
+  }
+
+  const counts = new Array(fine.palette.length).fill(0);
+  for (const index of fine.indices) if (index !== TRANSPARENT) counts[index]++;
+
+  const clusters = fine.palette
+    .map((rgb, index) => ({ rgb, lab: rgbToOklab(rgb[0], rgb[1], rgb[2]), count: counts[index] }))
+    .filter((cluster) => cluster.count > 0);
+
+  const pruned = pruneRamp(clusters, settings);
+  const palette = pruned.map((cluster) => cluster.rgb);
+  const labs = pruned.map((cluster) => cluster.lab);
+
+  // El error que importa es contra los píxeles visibles, no contra la paleta fina: es lo que verá
+  // quien mire el dibujo.
+  let error = 0;
+  let visible = 0;
+  for (const entry of buildHistogram(rgba, pixels, alphaThreshold).values()) {
+    let best = Infinity;
+    for (const lab of labs) {
+      const distance = squaredDistance(entry.lab, lab);
+      if (distance < best) best = distance;
+    }
+    error += Math.sqrt(best) * entry.count;
+    visible += entry.count;
+  }
+
+  return {
+    palette,
+    paletteHex: palette.map(([r, g, b]) => `#${[r, g, b].map((value) => value.toString(16).padStart(2, "0")).join("")}`),
+    count: palette.length,
+    residual: visible > 0 ? error / visible : 0,
+    merged: clusters.length - pruned.length,
+  };
+}
+
+/** Distancia de un punto a la recta que une otros dos, en OKLab. */
+function distanceToSegment(point, a, b) {
+  const ab = [b[0] - a[0], b[1] - a[1], b[2] - a[2]];
+  const ap = [point[0] - a[0], point[1] - a[1], point[2] - a[2]];
+  const length = ab[0] * ab[0] + ab[1] * ab[1] + ab[2] * ab[2];
+  const t = length === 0 ? 0 : Math.max(0, Math.min(1, (ap[0] * ab[0] + ap[1] * ab[1] + ap[2] * ab[2]) / length));
+  const closest = [a[0] + ab[0] * t, a[1] + ab[1] * t, a[2] + ab[2] * t];
+  return Math.hypot(point[0] - closest[0], point[1] - closest[1], point[2] - closest[2]);
+}
+
 const TRANSPARENT = 255;
 
 /**
