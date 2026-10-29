@@ -3,7 +3,7 @@
 > Fecha: 2026-10-28 · Gum Tree (ilustración, 1400×775), Cityscape (póster, 1400×980) y Ángel (foto,
 > 1050×700). SSIM y PSNR sobre luminancia, ventanas 8×8, stride 8, medidos en `bench/bw.html` sobre
 > los SVG emitidos. Referencia del competidor: los renders de Vector Magic del experimento 13.
-> Reproducible con `npm run bench:refit`.
+> Reproducible con `pnpm bench:refit`.
 
 ---
 
@@ -94,7 +94,7 @@ El ángulo de esquina (45°, 60°, 75°) mueve ±0,0002: no es una perilla.
 - `bench/lib/color-refit.mjs`: `refitSvg(svg, settings)` reescribe los `d` de un SVG del modo píxel
   conservando formas, rellenos y orden; `REFIT_DEFAULTS` = 0,25 / 0,25 / 60°.
 - `bench/lib/color-presets.mjs`: tercer modo `refit` (traza en píxel, pide reajuste) y `usesRefit`.
-- `bench/curve-refit.mjs` (`npm run bench:refit`): reproduce las tablas.
+- `bench/curve-refit.mjs` (`pnpm bench:refit`): reproduce las tablas.
 - `bench/auto-trace.mjs --refit` y la demo del navegador: el modo llega al producto.
 - El preset por defecto **no cambia**: `curvas` sigue siendo la salida para cortar y escalar; `refit`
   es el modo de fidelidad con curvas.

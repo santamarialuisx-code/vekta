@@ -1,7 +1,7 @@
 # Experimento 02 — ¿se puede entregar una salida cortable?
 
 > Fecha: 2026-10-28 · Banco: 4 imágenes × 8 variantes de vtracer (32 SVG) ·
-> Método: `bench/cut.mjs` · Verificación: `npm test` + navegador (ego-browser).
+> Método: `bench/cut.mjs` · Verificación: `pnpm test` + navegador (ego-browser).
 
 ---
 
@@ -60,7 +60,7 @@ Decisiones de implementación que cambian los números:
 Comando:
 
 ```bash
-npm run bench:cut
+pnpm bench:cut
 ```
 
 Escribe `bench/out/cut-report.json` y dos SVG por entrada en `bench/out/cut/`.
@@ -136,7 +136,7 @@ flujo que te obliga a cortar dos veces.
 
 ## 6. Verificación
 
-- **31 pruebas** (`npm test`): tokenizador de `d` (incluye `S`/`T`/arcos y relativos), herencia
+- **31 pruebas** (`pnpm test`): tokenizador de `d` (incluye `S`/`T`/arcos y relativos), herencia
   de `fill`, anidado de agujeros, factor de redundancia en cinco geometrías conocidas y
   verificación de que **lo emitido mide lo medido**.
 - **Error máximo de lo emitido: 0,00 %** en los 32 archivos, medido volviendo a leer el SVG

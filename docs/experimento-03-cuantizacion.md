@@ -40,8 +40,8 @@ Dos detalles que cambian el resultado:
 Comandos:
 
 ```bash
-npm run bench:quantize   # paleta + PNG de inspección
-npm run bench:pipeline   # 4 imágenes × 2 variantes × 2 modos
+pnpm bench:quantize   # paleta + PNG de inspección
+pnpm bench:pipeline   # 4 imágenes × 2 variantes × 2 modos
 ```
 
 ---

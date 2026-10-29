@@ -6,26 +6,26 @@ corte/grabado: fidelidad, economía de nodos y limpieza de formas.
 ## Uso
 
 ```bash
-npm install
-npm run bench          # barrido principal: 4 imágenes × 8 variantes
-npm run bench:sweep    # barrido fino de parámetros sobre Gum Tree
-npm run bench:merge    # añade el barrido a metrics.json
-npm run bench:serve    # servidor en http://127.0.0.1:8787/
-npm run bench:cut      # informe de doble corte y geometría cortable (SVG/DXF, mm, kerf)
-npm run bench:quantize # cuantización perceptiva en OKLab (antes de trazar)
-npm run bench:pipeline # cuantizar → trazar, contra el trazado directo
-npm run bench:sweep2   # barrido colores × simplify (calibración)
-npm run bench:geometry # barrido de esquinas, splicing y longitud
-npm run bench:knobs    # barrido de pathPrecision, filterSpeckle y layerDifference
-npm run bench:bw       # barrido del modo binario (umbral fijo y adaptativo) para line art
-npm run bench:auto     # decide la categoría por imagen y traza con su preset
-npm run bench:classify # categoría, señales y preset por imagen, sin trazar
-npm run bench:alpha    # silueta desde el alfa de un PNG (fixture: dona 400×400)
-npm run bench:stroke   # línea central para grabado y plotter (esqueleto + RDP)
-npm run bench:subpixel # muestreo subpíxel: barrido escala × simplify (1× y 3×)
-npm run bench:fidelity # color: curvas contra fidelidad de píxel, con la vara de Vector Magic
-npm run bench:refit    # color: reajuste de curvas sobre las etiquetas de píxel
-npm test               # pruebas de geometría de corte, clasificación, alfa y línea central
+pnpm install
+pnpm bench          # barrido principal: 4 imágenes × 8 variantes
+pnpm bench:sweep    # barrido fino de parámetros sobre Gum Tree
+pnpm bench:merge    # añade el barrido a metrics.json
+pnpm bench:serve    # servidor en http://127.0.0.1:8787/
+pnpm bench:cut      # informe de doble corte y geometría cortable (SVG/DXF, mm, kerf)
+pnpm bench:quantize # cuantización perceptiva en OKLab (antes de trazar)
+pnpm bench:pipeline # cuantizar → trazar, contra el trazado directo
+pnpm bench:sweep2   # barrido colores × simplify (calibración)
+pnpm bench:geometry # barrido de esquinas, splicing y longitud
+pnpm bench:knobs    # barrido de pathPrecision, filterSpeckle y layerDifference
+pnpm bench:bw       # barrido del modo binario (umbral fijo y adaptativo) para line art
+pnpm bench:auto     # decide la categoría por imagen y traza con su preset
+pnpm bench:classify # categoría, señales y preset por imagen, sin trazar
+pnpm bench:alpha    # silueta desde el alfa de un PNG (fixture: dona 400×400)
+pnpm bench:stroke   # línea central para grabado y plotter (esqueleto + RDP)
+pnpm bench:subpixel # muestreo subpíxel: barrido escala × simplify (1× y 3×)
+pnpm bench:fidelity # color: curvas contra fidelidad de píxel, con la vara de Vector Magic
+pnpm bench:refit    # color: reajuste de curvas sobre las etiquetas de píxel
+pnpm test               # pruebas de geometría de corte, clasificación, alfa y línea central
 ```
 
 El servidor es necesario porque el cálculo de SSIM/PSNR lee píxeles de `<canvas>`, y
@@ -84,7 +84,7 @@ bench/
   alpha-cut.mjs        CLI: silueta y DXF desde el alfa de un PNG
   stroke.mjs           CLI: línea central (`--tolerance`, `--only`, `--inputs`)
   subpixel-sweep.mjs   CLI: barrido escala × simplify del muestreo subpíxel
-  cut.mjs              CLI: informe + SVG/DXF cortable (`npm run bench:cut`)
+  cut.mjs              CLI: informe + SVG/DXF cortable (`pnpm bench:cut`)
   test/                pruebas de geometría, corte, clasificación, alfa y línea central (`node --test`)
   run.mjs  sweep.mjs  merge-metrics.mjs  serve.mjs
   compare.html  metrics.html  vmdiff.html  bw.html
@@ -117,7 +117,7 @@ los bordes casi coincidentes de un trazador real.
 
 ## Cuantización
 
-`npm run bench:quantize` reemplaza el agrupamiento jerárquico por umbral de vtracer por **k-means
+`pnpm bench:quantize` reemplaza el agrupamiento jerárquico por umbral de vtracer por **k-means
 ponderado por área en OKLab**. La diferencia es decisiva: un color que ocupa 0,2 % o más de los
 píxeles puede gastar una ranura; el ruido de un píxel no. Sobre Gum Tree con 16 colores, las
 nubes (65 436 px casi blancos) quedan **98,5 % intactas**; con 8 colores se las come la paleta.
@@ -130,7 +130,7 @@ El informe queda en `out/quantize-report.json` y los PNG en `out/quantized/`.
 
 ## Calibración
 
-`npm run bench:sweep2` barre `maxColors` × `simplify` sobre las 4 imágenes y mide SSIM en el
+`pnpm bench:sweep2` barre `maxColors` × `simplify` sobre las 4 imágenes y mide SSIM en el
 navegador. Regla de selección: el mayor `simplify` cuya caída de SSIM no pase de 0,005 respecto de
 `simplify 0`, con la misma paleta. Resultado:
 
@@ -154,7 +154,7 @@ Ver [`../docs/experimento-05-geometria.md`](../docs/experimento-05-geometria.md)
 
 ## Line art y modo binario
 
-`npm run bench:bw` barre el modo binario del motor, que hasta el experimento 07 estaba sin tocar.
+`pnpm bench:bw` barre el modo binario del motor, que hasta el experimento 07 estaba sin tocar.
 Sobre el escaneo K1 el preset de aquel experimento (`clustering: 'bw'`, umbral de Otsu de la imagen,
 `simplify` 0,8, trazado a 1×) pasa de
 **174 451 nodos y 28 rellenos** a **17 749 nodos y 1 relleno**, con **+0,032 de F1 de tinta** y 20×
@@ -168,7 +168,7 @@ el F1 no avisa —Gum Tree da 0,9965 con el SSIM en 0,41—, así que la decisi�
 con dos condiciones sobre la imagen: **≥ 90 % de píxeles neutros** y **≤ 40 % de tinta**.
 
 ```bash
-npm run bench:auto
+pnpm bench:auto
 # gum-tree-vector    color     nodos= 6083  rellenos=15  ...  color: 24 % de píxeles neutros, mínimo 90 %
 # k1-drawing         line-art  nodos=17749  rellenos= 1  ...  neutro (100 %) con 13 % de tinta
 ```
@@ -177,7 +177,7 @@ Ver [`../docs/experimento-07-bw-adaptativo.md`](../docs/experimento-07-bw-adapta
 
 ## Pipeline
 
-`npm run bench:pipeline` cuantiza y traza en la misma corrida, comparando contra el trazado
+`pnpm bench:pipeline` cuantiza y traza en la misma corrida, comparando contra el trazado
 directo con las mismas opciones. Sobre las 4 imágenes: **−8 % a −37 % de nodos** con SSIM igual o
 mejor, y las nubes del Gum Tree vuelven. La paleta se le pasa explícita a vtracer: si se le deja
 agrupar de nuevo, deriva los colores y fragmenta el SVG.
@@ -199,7 +199,7 @@ Ver [`../docs/experimento-06-dxf-kerf.md`](../docs/experimento-06-dxf-kerf.md).
 
 ## Salida cortable
 
-`npm run bench:cut` mide las cuatro longitudes y emite dos SVG por entrada en `out/cut/`:
+`pnpm bench:cut` mide las cuatro longitudes y emite dos SVG por entrada en `out/cut/`:
 
 - `<nombre>--layers.svg`: un path por color, ya unificado. Es la salida para vinilo y DTF.
 - `<nombre>--silhouette.svg`: un único path con la unión de todo. Es la pieza recortada.
@@ -210,7 +210,7 @@ archivo, para que la cifra no sea una promesa. Ver
 
 ## Clasificación por categoría
 
-`npm run bench:classify` imprime categoría, señales y preset sin escribir un SVG; `bench:auto` decide y
+`pnpm bench:classify` imprime categoría, señales y preset sin escribir un SVG; `bench:auto` decide y
 traza. Las cuatro imágenes del banco caen donde las midió el experimento 04: ilustración 12 col / 0,6
 (7 083 nodos), póster 16 / 0,8 (8 055), foto 12 / 0,8 (43 214) y line art en binario a 3× / 1,2
 (31 500).
@@ -224,7 +224,7 @@ Ver [`../docs/experimento-08-clasificacion.md`](../docs/experimento-08-clasifica
 
 ## Línea central
 
-`npm run bench:stroke` adelgaza la máscara de tinta (Zhang–Suen), corta en los nodos y simplifica con
+`pnpm bench:stroke` adelgaza la máscara de tinta (Zhang–Suen), corta en los nodos y simplifica con
 RDP. En K1 el mismo trazado pasa de **196 796 px de contorno a 114 956 px de cresta (−41,6 %)** con
 **0 rellenos** (`stroke`, `fill="none"`), 21 621 nodos y 205 KB. A `--tolerance 2` los nodos bajan a
 18 852 manteniendo el −42,4 % de recorrido.
@@ -257,7 +257,7 @@ Ver [`../docs/experimento-10-produccion.md`](../docs/experimento-10-produccion.m
 
 ## Alfa como línea de corte
 
-`npm run bench:alpha` (o `node bench/alpha-cut.mjs --in pieza.png --width-mm 100 --kerf-mm 0.2`) emite
+`pnpm bench:alpha` (o `node bench/alpha-cut.mjs --in pieza.png --width-mm 100 --kerf-mm 0.2`) emite
 silueta SVG y DXF desde el alfa del PNG. Sobre la dona de 400×400: perímetro **1 573,32 px** contra
 1 570,80 esperados (**+0,16 %**) y **70 672 px² de pieza frente a 160 000 del lienzo**, el 44,2 %.
 
@@ -269,7 +269,7 @@ Ver [`../docs/experimento-11-alfa.md`](../docs/experimento-11-alfa.md).
 
 ## Muestreo subpíxel
 
-`npm run bench:subpixel` amplía la imagen antes de decidir la tinta y devuelve la geometría a la
+`pnpm bench:subpixel` amplía la imagen antes de decidir la tinta y devuelve la geometría a la
 rejilla original. La escala y el `simplify` se barren por separado: el control del montaje es la fila
 1× con `simplify` 0,8, que reproduce el SVG de `bw-sweep` del experimento 07 con el `d` idéntico.
 
@@ -298,7 +298,7 @@ Ver [`../docs/experimento-12-subpixel.md`](../docs/experimento-12-subpixel.md).
 
 ## Fidelidad en color
 
-`npm run bench:fidelity` traza las tres imágenes de color con los dos modos de entrega y deja los SVG
+`pnpm bench:fidelity` traza las tres imágenes de color con los dos modos de entrega y deja los SVG
 para medir SSIM y PSNR en `bw.html` contra el original. La pregunta es la del experimento 14: ¿el
 hueco de 0,046 en ilustración era muestreo o paleta? Ni una ni otra: era el ajuste de curvas.
 
@@ -322,7 +322,7 @@ Los modos viven en `lib/color-presets.mjs` (`colorTraceOptions`, `FIDELITY_COLOR
 
 ## Reajuste de curvas
 
-`npm run bench:refit` traza en modo píxel y ajusta Béziers subpíxel sobre las etiquetas —la
+`pnpm bench:refit` traza en modo píxel y ajusta Béziers subpíxel sobre las etiquetas —la
 arquitectura de Vector Magic—, con las esquinas conservadas y un error declarado contra el borde
 suavizado. La vara es doble: SSIM y nodos.
 

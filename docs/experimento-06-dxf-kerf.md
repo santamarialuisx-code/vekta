@@ -1,7 +1,7 @@
 # Experimento 06 — DXF, milímetros y kerf
 
 > Fecha: 2026-10-28 · Cierra tres de las seis promesas de «cut-ready»: unidades reales, DXF en el
-> navegador y compensación de ancho de corte. Verificación: `npm test` (55 pruebas) y emisión real
+> navegador y compensación de ancho de corte. Verificación: `pnpm test` (55 pruebas) y emisión real
 > sobre los SVG del banco.
 
 ---
@@ -25,7 +25,7 @@ anidado.
 
 ## 2. Qué se emite
 
-Para cada SVG de entrada, con `npm run bench:cut -- --width-mm 100 --kerf-mm 0.2 --format svg,dxf`:
+Para cada SVG de entrada, con `pnpm bench:cut -- --width-mm 100 --kerf-mm 0.2 --format svg,dxf`:
 
 | Archivo | Contenido |
 |---|---|
@@ -88,7 +88,7 @@ Otras decisiones:
 ## 5. Verificación
 
 ```
-$ npm test
+$ pnpm test
 ℹ tests 55   ℹ pass 55   ℹ fail 0
 
 $ node bench/cut.mjs --only gum-tree-vector__cutout-opt --width-mm 100 --kerf-mm 0.2 --format svg,dxf

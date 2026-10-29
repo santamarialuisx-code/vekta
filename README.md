@@ -54,8 +54,8 @@ decisión de por medio tiene una cifra medida en [`bench/`](bench/README.md).
 ## Demo en el navegador
 
 ```bash
-npm install
-npm run bench:serve   # http://127.0.0.1:8787/web/index.html
+pnpm install
+pnpm bench:serve   # http://127.0.0.1:8787/web/index.html
 ```
 
 Arrastrar una imagen y descargar el SVG, con la decisión y las señales a la vista. Sin build, sin
@@ -64,10 +64,10 @@ backend y con una sola dependencia: el wasm de vtracer.
 ## Banco de pruebas
 
 ```bash
-npm run bench          # barrido principal: genera SVGs y métricas
-npm run bench:serve    # http://127.0.0.1:8787/compare.html
-npm run bench:auto     # decide la categoría por imagen y traza con su preset
-npm test               # pruebas de geometría, corte, DXF, alfa, clasificación y línea central
+pnpm bench          # barrido principal: genera SVGs y métricas
+pnpm bench:serve    # http://127.0.0.1:8787/compare.html
+pnpm bench:auto     # decide la categoría por imagen y traza con su preset
+pnpm test               # pruebas de geometría, corte, DXF, alfa, clasificación y línea central
 ```
 
 Los demás barridos (`bench:sweep`, `bench:quantize`, `bench:pipeline`, `bench:sweep2`,

@@ -122,7 +122,7 @@ Con la paleta recomendada, SSIM y nodos. La fila marcada es la elegida.
 - Recorte a 3× del ajuste elegido, comparado contra `simplify 0`: las nubes de Gum Tree siguen
   ahí y las líneas de K1 conservan el texto; la diferencia es el temblor de píxel que desaparece.
   Verificado en **ego-browser**, no solo por número.
-- `npm test`: 44 pruebas en verde (no se tocó código de librería, solo el banco).
+- `pnpm test`: 44 pruebas en verde (no se tocó código de librería, solo el banco).
 
 ---
 

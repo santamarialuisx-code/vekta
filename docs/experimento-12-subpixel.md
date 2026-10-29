@@ -130,7 +130,7 @@ Lectura de los números que ya se pueden leer:
 
 El JSON (`bench/out/subpixel-sweep.json`) lleva una fila por combinación con la misma forma que las
 de `bw-sweep.mjs` (`imgSlug`, `config`, `kind`, `lineArt`, `fills`, `nodes`, `bytes`, `ms`…) más
-`scale` y `simplify`, para que `bw.html` mida las dos mallas sin cambios. Con `npm run bench:serve` y
+`scale` y `simplify`, para que `bw.html` mida las dos mallas sin cambios. Con `pnpm bench:serve` y
 `/bw.html?json=out/subpixel-sweep.json`:
 
 1. Cargar el original de K1 y cada SVG del barrido.

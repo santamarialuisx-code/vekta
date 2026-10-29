@@ -263,12 +263,12 @@ mucho detalle tiene tantos bordes como un plano técnico.
   plano, vacío), turno de 8 bits en el umbral, `neutralShare` gris/color/mixto, `edgeDensity`,
   decisión sobre escaneo / foto en blanco y negro / ilustración.
 
-`bench/bw-sweep.mjs` — el barrido. `npm run bench:bw`.
-`bench/bw.html` — la medición: SSIM y F1 de tinta en el navegador. `npm run bench:serve`.
-`bench/auto-trace.mjs` — el camino del producto: decide por imagen y traza. `npm run bench:auto`.
+`bench/bw-sweep.mjs` — el barrido. `pnpm bench:bw`.
+`bench/bw.html` — la medición: SSIM y F1 de tinta en el navegador. `pnpm bench:serve`.
+`bench/auto-trace.mjs` — el camino del producto: decide por imagen y traza. `pnpm bench:auto`.
 
 ```
-$ npm run bench:auto
+$ pnpm bench:auto
 gum-tree-vector                    color     nodos=  6083  rellenos=15    155KB    463ms  color: 24 % de píxeles neutros, mínimo 90 %
 cityscape-sunset-dfm3-01           color     nodos=  8055  rellenos=16    171KB    568ms  color: 0 % de píxeles neutros, mínimo 90 %
 angel-luciano-…-unsplash-s         color     nodos= 51864  rellenos=16   1010KB   1121ms  color: 4 % de píxeles neutros, mínimo 90 %
@@ -278,9 +278,9 @@ k1-drawing                         line-art  nodos= 17749  rellenos= 1    366KB 
 ## 12. Reproducir
 
 ```bash
-npm install
-npm run bench:bw        # 59 SVGs + nodos/bytes/ms y las señales por imagen
-npm run bench:serve     # http://127.0.0.1:8787/bw.html  → SSIM y F1 de tinta
-npm run bench:auto      # decisión + trazado del preset
-npm test                # incluida la integración: el escaneo sale con un relleno
+pnpm install
+pnpm bench:bw        # 59 SVGs + nodos/bytes/ms y las señales por imagen
+pnpm bench:serve     # http://127.0.0.1:8787/bw.html  → SSIM y F1 de tinta
+pnpm bench:auto      # decisión + trazado del preset
+pnpm test                # incluida la integración: el escaneo sale con un relleno
 ```

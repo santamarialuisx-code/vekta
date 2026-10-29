@@ -99,10 +99,10 @@ pasadas.
 ## 5. Reproducir
 
 ```bash
-npm install
-npm run bench          # genera SVGs + métricas en bench/out/
-npm run bench:sweep    # barrido fino sobre Gum Tree
-npm run bench:serve    # http://127.0.0.1:8787/compare.html
+pnpm install
+pnpm bench          # genera SVGs + métricas en bench/out/
+pnpm bench:sweep    # barrido fino sobre Gum Tree
+pnpm bench:serve    # http://127.0.0.1:8787/compare.html
 ```
 
 Para medir fidelidad hay que abrir en el navegador (el cálculo de SSIM corre sobre

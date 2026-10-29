@@ -3,7 +3,7 @@
 > Fecha: 2026-10-28 · Gum Tree (ilustración, 1400×775), Cityscape (póster, 1400×980) y Ángel (foto,
 > 1050×700). SSIM y PSNR sobre luminancia, ventanas 8×8, stride 8, medidos en `bench/bw.html` sobre
 > los SVG emitidos; la referencia del competidor son los renders de Vector Magic del experimento 13.
-> Todo reproducible con `npm run bench:fidelity` y `bench/color-subpixel.mjs`.
+> Todo reproducible con `pnpm bench:fidelity` y `bench/color-subpixel.mjs`.
 
 ---
 
@@ -37,7 +37,7 @@ paleta explícita):
 | `fidelidad` | `mode: pixel` (sin ajuste de curvas) | reproducir el raster: grabado, impresión, referencia |
 | — | `mode: polygon`, `watershed`, `simplify 0`, `filterSpeckle 0`, `cornerThreshold 45` | barridos de control |
 
-`npm run bench:fidelity` emite los SVG y el JSON que `bw.html` rasteriza y compara contra el original
+`pnpm bench:fidelity` emite los SVG y el JSON que `bw.html` rasteriza y compara contra el original
 con la misma implementación de los experimentos 01–13.
 
 ### Resultado
@@ -145,7 +145,7 @@ de píxel) es la que nos falta.
 
 - `bench/lib/color-presets.mjs`: dos modos con nombre —`curvas` (spline, el de siempre) y `fidelidad`
   (píxel)— y la paleta del modo fidelidad por categoría (ilustración 12, póster 16, **foto 24**).
-- `bench/color-fidelity.mjs` (`npm run bench:fidelity`): reproduce la tabla de la sección 2.
+- `bench/color-fidelity.mjs` (`pnpm bench:fidelity`): reproduce la tabla de la sección 2.
 - `bench/auto-trace.mjs --fidelity`: el camino de producto puede entregar el modo fidelidad; el
   informe lleva `mode` y el line art no cambia.
 - `web/app.mjs`: el selector gana «fidelidad (píxel a píxel)»; el modo por defecto sigue decidiéndose

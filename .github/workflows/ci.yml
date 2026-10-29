@@ -2,7 +2,8 @@
 # dos versiones de Node que nos importan (20, aún la mínima soportada, y 22, la siguiente LTS).
 #
 # Solo acciones oficiales (`actions/*`): el repo no tiene dependencias de terceros en el CI, así
-# que no hay nada que inventar ni que auditar fuera de lo que mantiene GitHub.
+# que no hay nada que inventar ni que auditar fuera de lo que mantiene GitHub. pnpm se activa con
+# Corepack, que viene con Node, y la versión la fija `packageManager` en package.json.
 name: CI
 
 on:
@@ -25,19 +26,28 @@ jobs:
       - name: Clonar el repositorio
         uses: actions/checkout@v4
 
-      - name: Instalar Node con caché de npm
+      - name: Instalar Node
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
-          cache: npm
 
-      # `npm ci` respeta package-lock.json al milímetro: es lo que instala quien trabaja aquí, así
-      # que el CI no puede probar una resolución de dependencias distinta.
+      - name: Activar pnpm (Corepack, la versión de package.json)
+        run: corepack enable pnpm
+
+      - name: Caché del store de pnpm
+        uses: actions/cache@v4
+        with:
+          path: ~/.local/share/pnpm/store
+          key: pnpm-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: pnpm-${{ runner.os }}-
+
+      # `--frozen-lockfile` es el equivalente a `npm ci`: si pnpm-lock.yaml no cuadra con
+      # package.json, falla en vez de resolver otras versiones.
       - name: Instalar dependencias
-        run: npm ci
+        run: pnpm install --frozen-lockfile
 
       - name: Pruebas
-        run: npm test
+        run: pnpm test
 
       # Humo del camino que se entrega (`bench/auto-trace.mjs`): cubre la carga del motor nativo,
       # la lectura de una imagen real y la escritura del informe. Se limita a K1, que el preset de

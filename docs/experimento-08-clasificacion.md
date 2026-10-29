@@ -227,7 +227,7 @@ $ node bench/auto-trace.mjs --out bench/out/auto --json bench/out/auto-report.js
 La salida es la de la sección 4: `scan → line-art`, `logo-aa → illustration`, `poster → poster`,
 `photo → photo`.
 
-La suite completa (`npm test`) no se ejecutó en esta tarea; solo se modificó `auto-trace.mjs` fuera
+La suite completa (`pnpm test`) no se ejecutó en esta tarea; solo se modificó `auto-trace.mjs` fuera
 de los ficheros nuevos, y su prueba de integración existente se replica dentro de
 `category.test.mjs`.
 
